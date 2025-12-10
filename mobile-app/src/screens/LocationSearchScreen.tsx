@@ -32,10 +32,16 @@ export default function LocationSearchScreen({ navigation }: LocationSearchScree
     setSearchQuery(query);
     if (query.length >= 2) {
       setIsSearching(true);
-      setTimeout(() => {
-        const results = locationService.searchLocations(query);
-        setLocations(results);
-        setIsSearching(false);
+      setTimeout(async () => {
+        try {
+          const results = await locationService.searchLocations(query);
+          setLocations(results);
+        } catch (error) {
+          console.error('Error searching locations:', error);
+          setLocations([]);
+        } finally {
+          setIsSearching(false);
+        }
       }, 300);
     } else {
       setLocations([]);

@@ -1,4 +1,5 @@
-import ugLocations from 'ug-locations';
+// Import only what we need to avoid memory issues
+let ugLocationsData: any = null;
 
 export interface Village {
   village: string;
@@ -35,20 +36,38 @@ export interface District {
 
 class LocationService {
   private data: any;
+  private initialized: boolean = false;
 
   constructor() {
-    this.data = ugLocations;
+    this.data = null;
+  }
+
+  private async initialize() {
+    if (this.initialized) return;
+    
+    try {
+      // Lazy load to avoid initial bundle size issues
+      const ugLocations = require('ug-locations');
+      this.data = ugLocations;
+      this.initialized = true;
+    } catch (error) {
+      console.error('Error loading ug-locations:', error);
+      this.data = { districts: [] };
+      this.initialized = true;
+    }
   }
 
   // Get all districts
-  getDistricts(): string[] {
-    return this.data.districts || [];
+  async getDistricts(): Promise<string[]> {
+    await this.initialize();
+    return this.data?.districts || [];
   }
 
   // Get district details with subcounties
-  getDistrictDetails(districtName: string): District | null {
+  async getDistrictDetails(districtName: string): Promise<District | null> {
+    await this.initialize();
     const key = districtName.toUpperCase();
-    if (this.data.byDistrict && this.data.byDistrict[key]) {
+    if (this.data?.byDistrict && this.data.byDistrict[key]) {
       return {
         ...this.data.byDistrict[key],
         district: districtName
@@ -58,9 +77,10 @@ class LocationService {
   }
 
   // Get subcounty details with parishes
-  getSubcountyDetails(district: string, subcounty: string): Subcounty | null {
+  async getSubcountyDetails(district: string, subcounty: string): Promise<Subcounty | null> {
+    await this.initialize();
     const key = `${district.toUpperCase()}||${subcounty.toUpperCase()}`;
-    if (this.data.bySubcounty && this.data.bySubcounty[key]) {
+    if (this.data?.bySubcounty && this.data.bySubcounty[key]) {
       return {
         ...this.data.bySubcounty[key],
         district
@@ -70,29 +90,33 @@ class LocationService {
   }
 
   // Get parish details with villages
-  getParishDetails(district: string, subcounty: string, parish: string): Parish | null {
+  async getParishDetails(district: string, subcounty: string, parish: string): Promise<Parish | null> {
+    await this.initialize();
     const key = `${district.toUpperCase()}||${subcounty.toUpperCase()}||${parish.toUpperCase()}`;
-    if (this.data.byParish && this.data.byParish[key]) {
+    if (this.data?.byParish && this.data.byParish[key]) {
       return this.data.byParish[key];
     }
     return null;
   }
 
   // Get village details
-  getVillageDetails(villageName: string): Village | null {
+  async getVillageDetails(villageName: string): Promise<Village | null> {
+    await this.initialize();
     const key = villageName.toUpperCase();
-    if (this.data.byVillage && this.data.byVillage[key]) {
+    if (this.data?.byVillage && this.data.byVillage[key]) {
       return this.data.byVillage[key];
     }
     return null;
   }
 
   // Search across all administrative levels
-  searchLocations(query: string): Array<{
+  async searchLocations(query: string): Promise<Array<{
     type: 'district' | 'subcounty' | 'parish' | 'village';
     name: string;
     path: string;
-  }> {
+  }>> {
+    await this.initialize();
+    
     const results: Array<{
       type: 'district' | 'subcounty' | 'parish' | 'village';
       name: string;
@@ -101,7 +125,8 @@ class LocationService {
     const searchTerm = query.toLowerCase();
 
     // Search districts
-    this.getDistricts().forEach(district => {
+    const districts = await this.getDistricts();
+    districts.forEach(district => {
       if (district.toLowerCase().includes(searchTerm)) {
         results.push({
           type: 'district',
@@ -111,9 +136,16 @@ class LocationService {
       }
     });
 
-    // Search subcounties
-    if (this.data.bySubcounty) {
-      Object.entries(this.data.bySubcounty).forEach(([key, value]: [string, any]) => {
+    // Limit results to avoid performance issues
+    if (results.length > 20) {
+      return results.slice(0, 20);
+    }
+
+    // Search subcounties (limited)
+    if (this.data?.bySubcounty) {
+      const entries = Object.entries(this.data.bySubcounty).slice(0, 100);
+      for (const [key, value] of entries as [string, any][]) {
+        if (results.length >= 20) break;
         const subcounty = value.subcounty;
         if (subcounty.toLowerCase().includes(searchTerm)) {
           results.push({
@@ -122,84 +154,10 @@ class LocationService {
             path: `${value.district} > ${subcounty}`
           });
         }
-      });
-    }
-
-    // Search parishes
-    if (this.data.byParish) {
-      Object.entries(this.data.byParish).forEach(([key, value]: [string, any]) => {
-        const parish = value.parish;
-        if (parish.toLowerCase().includes(searchTerm)) {
-          results.push({
-            type: 'parish',
-            name: parish,
-            path: `${value.district} > ${value.subcounty} > ${parish}`
-          });
-        }
-      });
-    }
-
-    // Search villages (limit to avoid performance issues)
-    if (this.data.byVillage) {
-      let villageCount = 0;
-      const entries = Object.entries(this.data.byVillage);
-      
-      for (const [key, value] of entries as [string, any][]) {
-        if (villageCount >= 50) break; // Limit village results
-        
-        const village = value.village;
-        if (village.toLowerCase().includes(searchTerm)) {
-          results.push({
-            type: 'village',
-            name: village,
-            path: `${value.district} > ${value.subcounty} > ${value.parish} > ${village}`
-          });
-          villageCount++;
-        }
       }
     }
 
     return results;
-  }
-
-  // Build hierarchical tree for a district
-  buildDistrictTree(districtName: string): any {
-    const district = this.getDistrictDetails(districtName);
-    if (!district) return null;
-
-    const tree = {
-      name: districtName,
-      type: 'district',
-      children: [] as any[]
-    };
-
-    district.subcounties.forEach(subcountyName => {
-      const subcounty = this.getSubcountyDetails(districtName, subcountyName);
-      if (subcounty) {
-        const subcountyNode = {
-          name: subcountyName,
-          type: 'subcounty',
-          children: [] as any[]
-        };
-
-        subcounty.data.forEach(parishData => {
-          const parishNode = {
-            name: parishData.parish,
-            type: 'parish',
-            children: parishData.villages.map(village => ({
-              name: village,
-              type: 'village',
-              children: []
-            }))
-          };
-          subcountyNode.children.push(parishNode);
-        });
-
-        tree.children.push(subcountyNode);
-      }
-    });
-
-    return tree;
   }
 }
 

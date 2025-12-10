@@ -37,9 +37,10 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     loadDistricts();
   }, []);
 
-  const loadDistricts = () => {
+  const loadDistricts = async () => {
     try {
-      const districts = locationService.getDistricts();
+      setLoading(true);
+      const districts = await locationService.getDistricts();
       const units: AdminUnit[] = districts.map((district, index) => ({
         id: `district-${index}`,
         name: district,
@@ -59,7 +60,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
 
   const loadSubcounties = async (districtName: string, districtId: string) => {
     try {
-      const districtDetails = locationService.getDistrictDetails(districtName);
+      const districtDetails = await locationService.getDistrictDetails(districtName);
       if (districtDetails && districtDetails.subcounties) {
         return districtDetails.subcounties.map((subcounty, index) => ({
           id: `${districtId}-subcounty-${index}`,
@@ -79,7 +80,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
 
   const loadParishes = async (districtName: string, subcountyName: string, subcountyId: string) => {
     try {
-      const subcountyDetails = locationService.getSubcountyDetails(districtName, subcountyName);
+      const subcountyDetails = await locationService.getSubcountyDetails(districtName, subcountyName);
       if (subcountyDetails && subcountyDetails.data) {
         return subcountyDetails.data.map((parish, index) => ({
           id: `${subcountyId}-parish-${index}`,
@@ -99,7 +100,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
 
   const loadVillages = async (districtName: string, subcountyName: string, parishName: string, parishId: string) => {
     try {
-      const parishDetails = locationService.getParishDetails(districtName, subcountyName, parishName);
+      const parishDetails = await locationService.getParishDetails(districtName, subcountyName, parishName);
       if (parishDetails && parishDetails.villages) {
         return parishDetails.villages.map((village, index) => ({
           id: `${parishId}-village-${index}`,
