@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
+import { locationService } from '../services/locationService';
 
 interface AdminUnit {
   id: string;
@@ -27,93 +29,194 @@ interface AdminLevelsScreenProps {
 }
 
 export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScreenProps) {
-  const country = route.params?.country || { name: 'Republic of Ghana', code: 'GHA' };
+  const country = route.params?.country || { name: 'Uganda', code: 'UGA' };
+  const [adminUnits, setAdminUnits] = useState<AdminUnit[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [adminUnits, setAdminUnits] = useState<AdminUnit[]>([
-    {
-      id: '1',
-      name: 'Ashanti Region',
-      type: 'Region',
-      icon: 'public',
-      level: 0,
-      expanded: true,
-      children: [
-        {
-          id: '1-1',
-          name: 'Kumasi Metropolitan',
-          type: 'Sub-region',
-          icon: 'explore',
-          level: 1,
-        },
-        {
-          id: '1-2',
-          name: 'Asokore Mampong',
-          type: 'Sub-region',
-          icon: 'explore',
-          level: 1,
-          expanded: true,
-          children: [
-            {
-              id: '1-2-1',
-              name: 'Asawase',
-              type: 'District',
-              icon: 'domain',
-              level: 2,
-            },
-            {
-              id: '1-2-2',
-              name: 'Aboabo',
-              type: 'District',
-              icon: 'domain',
-              level: 2,
-            },
-          ],
-        },
-        {
-          id: '1-3',
-          name: 'Kwabre East',
-          type: 'Sub-region',
-          icon: 'explore',
-          level: 1,
-        },
-      ],
-    },
-    {
-      id: '2',
-      name: 'Greater Accra Region',
-      type: 'Region',
-      icon: 'public',
-      level: 0,
-    },
-    {
-      id: '3',
-      name: 'Northern Region',
-      type: 'Region',
-      icon: 'public',
-      level: 0,
-    },
-  ]);
+  useEffect(() => {
+    loadDistricts();
+  }, []);
 
-  const toggleExpand = (id: string, parentId?: string) => {
+  const loadDistricts = () => {
+    try {
+      const districts = locationService.getDistricts();
+      const units: AdminUnit[] = districts.slice(0, 50).map((district, index) => ({
+        id: `district-${index}`,
+        name: district,
+        type: 'District',
+        icon: 'location-city',
+        level: 0,
+        expanded: false,
+        children: [],
+      }));
+      setAdminUnits(units);
+    } catch (error) {
+      console.error('Error loading districts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSubcounties = async (districtName: string, districtId: string) => {
+    try {
+      const districtDetails = locationService.getDistrictDetails(districtName);
+      if (districtDetails && districtDetails.subcounties) {
+        return districtDetails.subcounties.map((subcounty, index) => ({
+          id: `${districtId}-subcounty-${index}`,
+          name: subcounty,
+          type: 'Subcounty',
+          icon: 'apartment',
+          level: 1,
+          expanded: false,
+          children: [],
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading subcounties:', error);
+    }
+    return [];
+  };
+
+  const loadParishes = async (districtName: string, subcountyName: string, subcountyId: string) => {
+    try {
+      const subcountyDetails = locationService.getSubcountyDetails(districtName, subcountyName);
+      if (subcountyDetails && subcountyDetails.data) {
+        return subcountyDetails.data.map((parish, index) => ({
+          id: `${subcountyId}-parish-${index}`,
+          name: parish.parish,
+          type: 'Parish',
+          icon: 'place',
+          level: 2,
+          expanded: false,
+          children: [],
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading parishes:', error);
+    }
+    return [];
+  };
+
+  const loadVillages = async (districtName: string, subcountyName: string, parishName: string, parishId: string) => {
+    try {
+      const parishDetails = locationService.getParishDetails(districtName, subcountyName, parishName);
+      if (parishDetails && parishDetails.villages) {
+        return parishDetails.villages.map((village, index) => ({
+          id: `${parishId}-village-${index}`,
+          name: village,
+          type: 'Village',
+          icon: 'home',
+          level: 3,
+          children: [],
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading villages:', error);
+    }
+    return [];
+  };
+
+  const toggleExpand = async (id: string, unit: AdminUnit) => {
+    // Load children if not already loaded
+    if (!unit.children || unit.children.length === 0) {
+      if (unit.type === 'District') {
+        const children = await loadSubcounties(unit.name, unit.id);
+        const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
+          return units.map((u) => {
+            if (u.id === id) {
+              return { ...u, children, expanded: true };
+            }
+            if (u.children) {
+              return { ...u, children: updateUnits(u.children) };
+            }
+            return u;
+          });
+        };
+        setAdminUnits(updateUnits(adminUnits));
+        return;
+      } else if (unit.type === 'Subcounty' && unit.level === 1) {
+        // Need to get parent district name
+        const districtUnit = findParentDistrict(unit.id);
+        if (districtUnit) {
+          const children = await loadParishes(districtUnit.name, unit.name, unit.id);
+          const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
+            return units.map((u) => {
+              if (u.id === id) {
+                return { ...u, children, expanded: true };
+              }
+              if (u.children) {
+                return { ...u, children: updateUnits(u.children) };
+              }
+              return u;
+            });
+          };
+          setAdminUnits(updateUnits(adminUnits));
+          return;
+        }
+      } else if (unit.type === 'Parish' && unit.level === 2) {
+        const districtUnit = findParentDistrict(unit.id);
+        const subcountyUnit = findParentSubcounty(unit.id);
+        if (districtUnit && subcountyUnit) {
+          const children = await loadVillages(districtUnit.name, subcountyUnit.name, unit.name, unit.id);
+          const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
+            return units.map((u) => {
+              if (u.id === id) {
+                return { ...u, children, expanded: true };
+              }
+              if (u.children) {
+                return { ...u, children: updateUnits(u.children) };
+              }
+              return u;
+            });
+          };
+          setAdminUnits(updateUnits(adminUnits));
+          return;
+        }
+      }
+    }
+
+    // Just toggle expansion
     const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
-      return units.map((unit) => {
-        if (unit.id === id) {
-          return { ...unit, expanded: !unit.expanded };
+      return units.map((u) => {
+        if (u.id === id) {
+          return { ...u, expanded: !u.expanded };
         }
-        if (unit.children) {
-          return { ...unit, children: updateUnits(unit.children) };
+        if (u.children) {
+          return { ...u, children: updateUnits(u.children) };
         }
-        return unit;
+        return u;
       });
     };
     setAdminUnits(updateUnits(adminUnits));
   };
 
+  const findParentDistrict = (childId: string): AdminUnit | null => {
+    for (const unit of adminUnits) {
+      if (unit.type === 'District' && childId.startsWith(unit.id)) {
+        return unit;
+      }
+    }
+    return null;
+  };
+
+  const findParentSubcounty = (childId: string): AdminUnit | null => {
+    for (const district of adminUnits) {
+      if (district.children) {
+        for (const subcounty of district.children) {
+          if (subcounty.type === 'Subcounty' && childId.startsWith(subcounty.id)) {
+            return subcounty;
+          }
+        }
+      }
+    }
+    return null;
+  };
+
   const handleUnitPress = (unit: AdminUnit) => {
-    if (unit.children && unit.children.length > 0) {
-      toggleExpand(unit.id);
-    } else {
+    if (unit.type === 'Village') {
       navigation.navigate('AdminUnitEditor', { unit });
+    } else {
+      toggleExpand(unit.id, unit);
     }
   };
 
@@ -182,22 +285,28 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
       {/* Country Info Card */}
       <View style={styles.countryCard}>
         <Image
-          source={{ uri: 'https://flagcdn.com/w80/gh.png' }}
+          source={{ uri: 'https://flagcdn.com/w80/ug.png' }}
           style={styles.countryFlag}
         />
         <View>
-          <Text style={styles.countryLabel}>Country</Text>
           <Text style={styles.countryName}>{country.name}</Text>
+          <Text style={styles.countryCode}>{country.code}</Text>
         </View>
       </View>
 
-      {/* Admin Units List */}
-      <FlatList
-        data={adminUnits}
-        renderItem={({ item }) => renderUnit(item)}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading Uganda districts...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={adminUnits}
+          renderItem={({ item }) => renderUnit(item)}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -295,5 +404,16 @@ const styles = StyleSheet.create({
   },
   childrenContainer: {
     backgroundColor: colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: fontSizes.md,
+    color: colors.gray[600],
   },
 });
