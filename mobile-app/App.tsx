@@ -1,36 +1,34 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import LoginScreen from './src/screens/LoginScreen';
+import CountryListScreen from './src/screens/CountryListScreen';
+import LocationSearchScreen from './src/screens/LocationSearchScreen';
+import AdminLevelsScreen from './src/screens/AdminLevelsScreen';
+import AdminUnitEditorScreen from './src/screens/AdminUnitEditorScreen';
+import VersionHistoryScreen from './src/screens/VersionHistoryScreen';
+
+const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Location System</Text>
-        <Text style={styles.subtitle}>App is loading...</Text>
-      </View>
-    </SafeAreaView>
+    <NavigationContainer>
+      <StatusBar barStyle="dark-content" backgroundColor="#f6f6f8" />
+      <Stack.Navigator
+        initialRouteName="Login"
+        screenOptions={{
+          headerShown: false,
+          cardStyle: { backgroundColor: '#f6f6f8' },
+        }}
+      >
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="CountryList" component={CountryListScreen} />
+        <Stack.Screen name="LocationSearch" component={LocationSearchScreen} />
+        <Stack.Screen name="AdminLevels" component={AdminLevelsScreen} />
+        <Stack.Screen name="AdminUnitEditor" component={AdminUnitEditorScreen} />
+        <Stack.Screen name="VersionHistory" component={VersionHistoryScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f6f6f8',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#135bec',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-});
