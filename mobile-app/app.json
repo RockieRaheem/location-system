@@ -20,8 +20,16 @@
       "bundleIdentifier": "com.locationsystem.mobile"
     },
     "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#135bec"
+      },
       "package": "com.locationsystem.mobile"
     },
-    "web": {}
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }
