@@ -39,7 +39,11 @@ export default function CountryListScreen({ navigation }: CountryListScreenProps
   }, [searchQuery]);
 
   const handleCountryPress = (country: Country) => {
-    navigation.navigate('AdminLevels', { country });
+    if (country.isConfigured) {
+      navigation.navigate('AdminLevels', { country });
+    } else {
+      navigation.navigate('CountryConfig', { country });
+    }
   };
 
   const renderCountryItem = ({ item }: { item: Country }) => (
