@@ -11,7 +11,7 @@ import {
   Timestamp,
   DocumentData
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { db } from '../../config/firebase';
 import { 
   Country, 
   AdminLevel, 
@@ -20,7 +20,7 @@ import {
   CountryWithStats,
   AdminUnitHierarchy,
   LevelStatistics
-} from '../types/location.types';
+} from '../../types/location.types';
 
 // Collections
 const COUNTRIES_COLLECTION = 'countries';
@@ -34,7 +34,7 @@ export const locationService = {
   
   async getAllCountries(): Promise<Country[]> {
     const snapshot = await getDocs(collection(db, COUNTRIES_COLLECTION));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Country));
+    return snapshot.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() } as Country));
   },
 
   async getCountryById(countryId: string): Promise<Country | null> {
@@ -110,7 +110,7 @@ export const locationService = {
       orderBy('levelNumber', 'asc')
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AdminLevel));
+    return snapshot.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() } as AdminLevel));
   },
 
   async createAdminLevel(levelData: Omit<AdminLevel, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
@@ -168,7 +168,7 @@ export const locationService = {
       where('isActive', '==', true)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AdminUnit));
+    return snapshot.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() } as AdminUnit));
   },
 
   async getAdminUnitsByParent(parentUnitId: string): Promise<AdminUnit[]> {
@@ -178,7 +178,7 @@ export const locationService = {
       where('isActive', '==', true)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AdminUnit));
+    return snapshot.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() } as AdminUnit));
   },
 
   async createAdminUnit(unitData: Omit<AdminUnit, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
@@ -244,11 +244,11 @@ export const locationService = {
         );
 
     const snapshot = await getDocs(q);
-    const units = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AdminUnit));
+    const units = snapshot.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() } as AdminUnit));
 
     // Fetch level details and child counts for each unit
     const hierarchyUnits: AdminUnitHierarchy[] = await Promise.all(
-      units.map(async (unit) => {
+      units.map(async (unit: AdminUnit) => {
         const levelDoc = await getDoc(doc(db, ADMIN_LEVELS_COLLECTION, unit.levelId));
         const level = { id: levelDoc.id, ...levelDoc.data() } as AdminLevel;
         
@@ -286,7 +286,7 @@ export const locationService = {
       orderBy('performedAt', 'desc')
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UpdateHistory));
+    return snapshot.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() } as UpdateHistory));
   },
 
   // ============ STATISTICS ============

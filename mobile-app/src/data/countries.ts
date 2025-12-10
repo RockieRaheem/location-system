@@ -4,12 +4,12 @@ export interface Country {
   code: string;
   flagUrl: string;
   continent: string;
-  phoneCode: string;
-  numberOfAdminLevels: number;
-  numberOfElectoralLevels: number;
-  economicZones: string[];
-  adminLevelNames: string[]; // e.g., ["Country", "Region", "District", "County", "Sub-county", "Parish", "Village"]
-  isConfigured: boolean; // Whether admin structure has been set up
+  phoneCode?: string;
+  numberOfAdminLevels?: number;
+  numberOfElectoralLevels?: number;
+  economicZones?: string[];
+  adminLevelNames?: string[]; // e.g., ["Country", "Region", "District", "County", "Sub-county", "Parish", "Village"]
+  isConfigured?: boolean; // Whether admin structure has been set up
 }
 
 export const COUNTRIES: Country[] = [

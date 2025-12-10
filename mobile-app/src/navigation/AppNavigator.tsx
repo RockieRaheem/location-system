@@ -9,10 +9,12 @@ import {
   AdminUnitEditorScreen,
   VersionHistoryScreen,
 } from '../screens';
+import CountryConfigScreen from '../screens/CountryConfigScreen';
 
 export type RootStackParamList = {
   Login: undefined;
   CountryList: undefined;
+  CountryConfig: { country: any };
   LocationSearch: undefined;
   AdminLevels: { country?: any };
   AdminUnitEditor: { unit?: any };
@@ -33,6 +35,7 @@ export default function AppNavigator() {
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="CountryList" component={CountryListScreen} />
+        <Stack.Screen name="CountryConfig" component={CountryConfigScreen} />
         <Stack.Screen name="LocationSearch" component={LocationSearchScreen} />
         <Stack.Screen name="AdminLevels" component={AdminLevelsScreen} />
         <Stack.Screen name="AdminUnitEditor" component={AdminUnitEditorScreen} />
