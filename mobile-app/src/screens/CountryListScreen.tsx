@@ -54,7 +54,26 @@ export default function CountryListScreen({ navigation }: CountryListScreenProps
       <Image source={{ uri: item.flagUrl }} style={styles.flag} />
       <View style={styles.countryInfo}>
         <Text style={styles.countryName}>{item.name}</Text>
-        <Text style={styles.countryCode}>{item.code}</Text>
+        <View style={styles.countryMeta}>
+          <Text style={styles.countryCode}>{item.code}</Text>
+          {item.phoneCode && (
+            <>
+              <Text style={styles.metaDivider}>•</Text>
+              <Text style={styles.countryCode}>{item.phoneCode}</Text>
+            </>
+          )}
+        </View>
+        {item.isConfigured ? (
+          <View style={styles.configBadge}>
+            <MaterialIcons name="check-circle" size={14} color={colors.success.DEFAULT} />
+            <Text style={styles.configText}>Configured</Text>
+          </View>
+        ) : (
+          <View style={[styles.configBadge, styles.notConfiguredBadge]}>
+            <MaterialIcons name="settings" size={14} color={colors.gray[600]} />
+            <Text style={[styles.configText, styles.notConfiguredText]}>Setup Required</Text>
+          </View>
+        )}
       </View>
       <MaterialIcons name="chevron-right" size={24} color={colors.gray[500]} />
     </TouchableOpacity>
@@ -208,6 +227,37 @@ const styles = StyleSheet.create({
   },
   countryCode: {
     fontSize: fontSizes.sm,
+    color: colors.gray[600],
+  },
+  countryMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  metaDivider: {
+    marginHorizontal: 6,
+    color: colors.gray[400],
+    fontSize: fontSizes.sm,
+  },
+  configBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: colors.success.light,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  notConfiguredBadge: {
+    backgroundColor: colors.gray[100],
+  },
+  configText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: colors.success.DEFAULT,
+  },
+  notConfiguredText: {
     color: colors.gray[600],
   },
 });
