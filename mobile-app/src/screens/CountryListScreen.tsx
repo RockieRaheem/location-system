@@ -30,34 +30,7 @@ export default function CountryListScreen({ navigation }: CountryListScreenProps
       code: 'UGA',
       flagUrl: 'https://flagcdn.com/w80/ug.png',
     },
-    {
-      id: 'AF',
-      name: 'Afghanistan',
-      code: 'AFG',
-      flagUrl: 'https://flagcdn.com/w80/af.png',
-    },
-    {
-      id: 'AL',
-      name: 'Albania',
-      code: 'ALB',
-      flagUrl: 'https://flagcdn.com/w80/al.png',
-    },
-    {
-      id: 'DZ',
-      name: 'Algeria',
-      code: 'DZA',
-      flagUrl: 'https://flagcdn.com/w80/dz.png',
-    },
-    {
-      id: 'AD',
-      name: 'Andorra',
-      code: 'AND',
-      flagUrl: 'https://flagcdn.com/w80/ad.png',
-    },
-    {
-      id: 'AO',
-      name: 'Angola',
-      code: 'AGO',
+  ]);
       flagUrl: 'https://flagcdn.com/w80/ao.png',
     },
     {
