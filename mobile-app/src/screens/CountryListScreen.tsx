@@ -31,15 +31,6 @@ export default function CountryListScreen({ navigation }: CountryListScreenProps
       flagUrl: 'https://flagcdn.com/w80/ug.png',
     },
   ]);
-      flagUrl: 'https://flagcdn.com/w80/ao.png',
-    },
-    {
-      id: 'AR',
-      name: 'Argentina',
-      code: 'ARG',
-      flagUrl: 'https://flagcdn.com/w80/ar.png',
-    },
-  ]);
 
   const handleCountryPress = (country: Country) => {
     navigation.navigate('AdminLevels', { country });

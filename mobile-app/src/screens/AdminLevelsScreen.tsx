@@ -367,6 +367,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.gray[900],
   },
+  countryCode: {
+    fontSize: fontSizes.sm,
+    color: colors.gray[500],
+  },
   listContent: {
     paddingBottom: 32,
   },
@@ -413,7 +417,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: fontSizes.md,
+    fontSize: fontSizes.base,
     color: colors.gray[600],
   },
 });

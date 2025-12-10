@@ -56,8 +56,6 @@ export default function LocationSearchScreen({ navigation }: LocationSearchScree
         return 'location-on';
     }
   };
-      code: 'VLG-1121',
-  };
 
   const renderLocationItem = ({ item }: { item: Location }) => (
     <TouchableOpacity style={styles.locationCard}>
@@ -124,11 +122,6 @@ export default function LocationSearchScreen({ navigation }: LocationSearchScree
       )}
     </SafeAreaView>
   );
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-      />
-    </SafeAreaView>
-  );
 }
 
 const styles = StyleSheet.create({
@@ -187,11 +180,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gray[300],
   },
-  listContent: {
+  listContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 32,
-    gap: 12,
   },
   locationCard: {
     flexDirection: 'row',
