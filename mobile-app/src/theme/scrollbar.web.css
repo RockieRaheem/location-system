@@ -1,0 +1,84 @@
+/* 
+ * Custom Scrollbar Styles for React Native Web
+ * 
+ * This CSS file provides visible, styled scrollbars for the web version of the app.
+ * It's automatically imported in App.tsx when Platform.OS === 'web'.
+ * 
+ * Features:
+ * - Always visible scrollbars (10px wide)
+ * - Gray color scheme matching app theme
+ * - Hover and active states
+ * - Works with React Native Web's compiled output
+ */
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 10px;
+  border: 2px solid #f3f4f6;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #135bec;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #f3f4f6;
+}
+
+/* Ensure scrollbars are always visible */
+.css-view-g5y9jx {
+  overflow-y: auto !important;
+}
+
+/* Make scrollbars always visible on scrollable containers */
+div[style*="overflow-y: scroll"],
+div[style*="overflowY: scroll"],
+[class*="r-overflowY"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: #9ca3af #f3f4f6 !important;
+}
+
+div[style*="overflow-y: scroll"]::-webkit-scrollbar,
+div[style*="overflowY: scroll"]::-webkit-scrollbar,
+[class*="r-overflowY"]::-webkit-scrollbar {
+  width: 10px !important;
+  display: block !important;
+}
+
+div[style*="overflow-y: scroll"]::-webkit-scrollbar-track,
+div[style*="overflowY: scroll"]::-webkit-scrollbar-track,
+[class*="r-overflowY"]::-webkit-scrollbar-track {
+  background: #f3f4f6 !important;
+  border-radius: 10px !important;
+}
+
+div[style*="overflow-y: scroll"]::-webkit-scrollbar-thumb,
+div[style*="overflowY: scroll"]::-webkit-scrollbar-thumb,
+[class*="r-overflowY"]::-webkit-scrollbar-thumb {
+  background: #9ca3af !important;
+  border-radius: 10px !important;
+  border: 2px solid #f3f4f6 !important;
+}
+
+div[style*="overflow-y: scroll"]::-webkit-scrollbar-thumb:hover,
+div[style*="overflowY: scroll"]::-webkit-scrollbar-thumb:hover,
+[class*="r-overflowY"]::-webkit-scrollbar-thumb:hover {
+  background: #6b7280 !important;
+}

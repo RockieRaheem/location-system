@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -12,6 +11,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
 import { locationService } from '../services/locationService';
+import { StyledFlatList } from '../../components/StyledFlatList';
 
 interface AdminUnit {
   id: string;
@@ -301,7 +301,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
           <Text style={styles.loadingText}>Loading Uganda districts...</Text>
         </View>
       ) : (
-        <FlatList
+        <StyledFlatList
           data={adminUnits}
           renderItem={({ item }) => renderUnit(item)}
           keyExtractor={(item) => item.id}

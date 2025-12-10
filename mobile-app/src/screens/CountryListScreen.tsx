@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -10,6 +9,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
+import { StyledFlatList } from '../../components/StyledFlatList';
 
 interface Country {
   id: string;
@@ -68,7 +68,7 @@ export default function CountryListScreen({ navigation }: CountryListScreenProps
       </View>
 
       {/* Country List */}
-      <FlatList
+      <StyledFlatList
         data={countries}
         renderItem={renderCountryItem}
         keyExtractor={(item) => item.id}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from './src/screens/LoginScreen';
@@ -8,6 +8,11 @@ import LocationSearchScreen from './src/screens/LocationSearchScreen';
 import AdminLevelsScreen from './src/screens/AdminLevelsScreen';
 import AdminUnitEditorScreen from './src/screens/AdminUnitEditorScreen';
 import VersionHistoryScreen from './src/screens/VersionHistoryScreen';
+
+// Import custom scrollbar styles for web
+if (Platform.OS === 'web') {
+  require('./src/theme/scrollbar.web.css');
+}
 
 const Stack = createStackNavigator();
 

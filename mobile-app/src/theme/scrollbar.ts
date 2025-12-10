@@ -1,8 +1,9 @@
 import { colors } from './colors';
+import { Platform } from 'react-native';
 
 export const scrollbarStyles = {
-  // Scrollbar indicator style
-  indicatorStyle: 'default' as const, // Can be 'default', 'black', 'white'
+  // Scrollbar indicator style - 'black' makes it more visible
+  indicatorStyle: (Platform.OS === 'ios' ? 'black' : 'default') as 'black' | 'white' | 'default',
   
   // Custom scrollbar colors
   scrollbar: {
@@ -23,15 +24,18 @@ export const scrollbarStyles = {
     paddingRight: 8, // Space for scrollbar
   },
   
-  // Show scrollbar config
+  // Show scrollbar config - always show on Android, flash on iOS
   showsVerticalScrollIndicator: true,
   showsHorizontalScrollIndicator: false,
   
   // Smooth scrolling
   scrollEventThrottle: 16,
-  decelerationRate: 'normal' as const,
+  decelerationRate: 'normal' as 'normal' | 'fast',
   bounces: true,
   bouncesZoom: true,
+  
+  // Make scrollbar persist longer on iOS
+  scrollIndicatorInsets: { right: 1 },
 };
 
 export const getScrollbarProps = () => ({
@@ -41,4 +45,5 @@ export const getScrollbarProps = () => ({
   decelerationRate: scrollbarStyles.decelerationRate,
   bounces: scrollbarStyles.bounces,
   indicatorStyle: scrollbarStyles.indicatorStyle,
+  scrollIndicatorInsets: scrollbarStyles.scrollIndicatorInsets,
 });

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -12,6 +11,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
 import { locationService } from '../services/locationService';
+import { StyledFlatList } from '../../components/StyledFlatList';
 
 interface Location {
   type: 'district' | 'subcounty' | 'parish' | 'village';
@@ -111,7 +111,7 @@ export default function LocationSearchScreen({ navigation }: LocationSearchScree
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlatList
+        <StyledFlatList
           data={locations}
           renderItem={renderLocationItem}
           keyExtractor={(item, index) => `${item.type}-${item.name}-${index}`}

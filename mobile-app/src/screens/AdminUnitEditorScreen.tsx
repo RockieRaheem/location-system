@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  ScrollView,
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
+import { StyledScrollView } from '../../components/StyledScrollView';
 
 interface AdminUnitEditorScreenProps {
   navigation: any;
@@ -58,7 +58,7 @@ export default function AdminUnitEditorScreen({
       </View>
 
       {/* Form */}
-      <ScrollView contentContainerStyle={styles.content}>
+      <StyledScrollView contentContainerStyle={styles.content}>
         {/* Unit ID (Read-only) */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Unit ID</Text>
@@ -142,7 +142,7 @@ export default function AdminUnitEditorScreen({
           <MaterialIcons name="history" size={20} color={colors.primary} />
           <Text style={styles.historyButtonText}>View Version History</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </StyledScrollView>
 
       {/* Footer Actions */}
       <View style={styles.footer}>

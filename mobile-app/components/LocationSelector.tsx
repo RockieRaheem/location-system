@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import ug from "ug-locations";
+import { StyledFlatList } from './StyledFlatList';
 
 export default function LocationSelector({ onSelect }: any) {
   const [districts, setDistricts] = useState<string[]>([]);
@@ -34,10 +35,11 @@ export default function LocationSelector({ onSelect }: any) {
   return (
     <View style={{ padding: 12 }}>
       <Text>District</Text>
-      <FlatList
+      <StyledFlatList
         data={districts}
         keyExtractor={(i) => i}
         horizontal
+        showScrollbar={false}
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => setSelectedDistrict(item)}>
             <Text style={{ margin: 6, fontWeight: item === selectedDistrict ? "bold" : "normal" }}>{item}</Text>
@@ -46,10 +48,11 @@ export default function LocationSelector({ onSelect }: any) {
       />
 
       <Text>Subcounty</Text>
-      <FlatList
+      <StyledFlatList
         data={subcounties}
         keyExtractor={(i) => i}
         horizontal
+        showScrollbar={false}
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => setSelectedSubcounty(item)}>
             <Text style={{ margin: 6, fontWeight: item === selectedSubcounty ? "bold" : "normal" }}>{item}</Text>
@@ -61,7 +64,7 @@ export default function LocationSelector({ onSelect }: any) {
       <TextInput value={search} onChangeText={setSearch} placeholder="Search village, parish, etc." style={{borderWidth:1,padding:6,marginVertical:8}} />
 
       {search ? (
-        <FlatList
+        <StyledFlatList
           data={searchResults}
           keyExtractor={(it, idx) => `${it.village}-${idx}`}
           renderItem={({ item }) => (

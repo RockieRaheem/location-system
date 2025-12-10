@@ -2,13 +2,13 @@ import React from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
+import { StyledFlatList } from '../../components/StyledFlatList';
 
 interface HistoryEntry {
   id: string;
@@ -161,7 +161,7 @@ export default function VersionHistoryScreen({
       </View>
 
       {/* History Timeline */}
-      <FlatList
+      <StyledFlatList
         data={historyEntries}
         renderItem={renderHistoryItem}
         keyExtractor={(item) => item.id}
