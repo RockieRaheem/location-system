@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
+  TouchableOpacity,
   Image,
+  TextInput,
+  SectionList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
-import { StyledFlatList } from '../../components/StyledFlatList';
+import { COUNTRIES, CONTINENTS, Country } from '../data/countries';
+import { getScrollbarProps } from '../theme/scrollbar';
 
-interface Country {
-  id: string;
-  name: string;
-  code: string;
-  flagUrl: string;
+interface CountrySection {
+  continent: string;
+  data: Country[];
 }
 
 interface CountryListScreenProps {
@@ -23,21 +23,23 @@ interface CountryListScreenProps {
 }
 
 export default function CountryListScreen({ navigation }: CountryListScreenProps) {
-  const [countries] = useState<Country[]>([
-    {
-      id: 'UG',
-      name: 'Uganda',
-      code: 'UGA',
-      flagUrl: 'https://flagcdn.com/w80/ug.png',
-    },
-  ]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const sections = useMemo(() => {
+    const filteredCountries = COUNTRIES.filter((country) =>
+      country.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const countrySections: CountrySection[] = CONTINENTS.map((continent) => ({
+      continent,
+      data: filteredCountries.filter((country) => country.continent === continent),
+    })).filter((section) => section.data.length > 0);
+
+    return countrySections;
+  }, [searchQuery]);
 
   const handleCountryPress = (country: Country) => {
     navigation.navigate('AdminLevels', { country });
-  };
-
-  const handleSearchPress = () => {
-    navigation.navigate('LocationSearch');
   };
 
   const renderCountryItem = ({ item }: { item: Country }) => (
@@ -50,32 +52,61 @@ export default function CountryListScreen({ navigation }: CountryListScreenProps
         <Text style={styles.countryName}>{item.name}</Text>
         <Text style={styles.countryCode}>{item.code}</Text>
       </View>
-      <MaterialIcons name="chevron-right" size={24} color={colors.gray[400]} />
+      <MaterialIcons name="chevron-right" size={24} color={colors.gray[500]} />
     </TouchableOpacity>
   );
 
+  const renderSectionHeader = ({ section }: { section: CountrySection }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{section.continent}</Text>
+      <Text style={styles.sectionCount}>{section.data.length} countries</Text>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
+    <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back-ios" size={20} color={colors.gray[800]} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={colors.gray[900]} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Countries</Text>
-        <TouchableOpacity style={styles.iconButton} onPress={handleSearchPress}>
-          <MaterialIcons name="search" size={24} color={colors.gray[800]} />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Select Country</Text>
+        <View style={styles.placeholder} />
       </View>
 
-      {/* Country List */}
-      <StyledFlatList
-        data={countries}
-        renderItem={renderCountryItem}
+      <View style={styles.searchContainer}>
+        <MaterialIcons
+          name="search"
+          size={20}
+          color={colors.gray[500]}
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search countries..."
+          placeholderTextColor={colors.gray[500]}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <MaterialIcons name="close" size={20} color={colors.gray[500]} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
+        renderItem={renderCountryItem}
+        renderSectionHeader={renderSectionHeader}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        stickySectionHeadersEnabled={true}
+        {...getScrollbarProps()}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -85,41 +116,82 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundLight,
   },
   header: {
-    height: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+  backButton: {
+    padding: 8,
   },
   headerTitle: {
     fontSize: fontSizes.xl,
-    fontWeight: '700',
+    fontWeight: '600',
     color: colors.gray[900],
   },
+  placeholder: {
+    width: 40,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray[50],
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.gray[900],
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  sectionCount: {
+    fontSize: 14,
+    color: colors.gray[600],
+  },
   listContent: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
+    paddingBottom: 20,
   },
   countryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    padding: 16,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
   },
   flag: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 32,
     marginRight: 16,
+    borderRadius: 4,
   },
   countryInfo: {
     flex: 1,
@@ -132,10 +204,6 @@ const styles = StyleSheet.create({
   },
   countryCode: {
     fontSize: fontSizes.sm,
-    color: colors.gray[500],
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.gray[200],
+    color: colors.gray[600],
   },
 });
