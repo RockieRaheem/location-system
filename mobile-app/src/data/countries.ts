@@ -4,11 +4,42 @@ export interface Country {
   code: string;
   flagUrl: string;
   continent: string;
+  phoneCode: string;
+  numberOfAdminLevels: number;
+  numberOfElectoralLevels: number;
+  economicZones: string[];
+  adminLevelNames: string[]; // e.g., ["Country", "Region", "District", "County", "Sub-county", "Parish", "Village"]
+  isConfigured: boolean; // Whether admin structure has been set up
 }
 
 export const COUNTRIES: Country[] = [
   // Africa
-  { id: 'DZ', name: 'Algeria', code: 'DZA', flagUrl: 'https://flagcdn.com/w80/dz.png', continent: 'Africa' },
+  { 
+    id: 'DZ', 
+    name: 'Algeria', 
+    code: 'DZA', 
+    flagUrl: 'https://flagcdn.com/w80/dz.png', 
+    continent: 'Africa',
+    phoneCode: '+213',
+    numberOfAdminLevels: 0,
+    numberOfElectoralLevels: 0,
+    economicZones: [],
+    adminLevelNames: [],
+    isConfigured: false
+  },
+  { 
+    id: 'UG', 
+    name: 'Uganda', 
+    code: 'UGA', 
+    flagUrl: 'https://flagcdn.com/w80/ug.png', 
+    continent: 'Africa',
+    phoneCode: '+256',
+    numberOfAdminLevels: 8,
+    numberOfElectoralLevels: 5,
+    economicZones: ['EAC', 'COMESA'],
+    adminLevelNames: ['Country', 'Region', 'Sub-region', 'District/City', 'County/Constituency', 'Sub-county/Division/Ward', 'Parish', 'Village/Cell'],
+    isConfigured: true
+  },
   { id: 'AO', name: 'Angola', code: 'AGO', flagUrl: 'https://flagcdn.com/w80/ao.png', continent: 'Africa' },
   { id: 'BJ', name: 'Benin', code: 'BEN', flagUrl: 'https://flagcdn.com/w80/bj.png', continent: 'Africa' },
   { id: 'BW', name: 'Botswana', code: 'BWA', flagUrl: 'https://flagcdn.com/w80/bw.png', continent: 'Africa' },
