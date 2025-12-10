@@ -31,75 +31,74 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.content}>
-            {/* Icon */}
-            <View style={styles.iconContainer}>
-              <MaterialIcons name="admin-panel-settings" size={48} color={colors.primary} />
-            </View>
-
-            {/* Title */}
-            <Text style={styles.title}>Admin Login</Text>
-            <Text style={styles.subtitle}>Sign in to manage the system.</Text>
-
-            {/* Form */}
-            <View style={styles.form}>
-              {/* Email Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Username or Email</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g., admin@gov.country"
-                  placeholderTextColor={colors.gray[400]}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                />
-              </View>
-
-              {/* Password Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Enter your password"
-                    placeholderTextColor={colors.gray[400]}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <MaterialIcons
-                      name={showPassword ? 'visibility' : 'visibility-off'}
-                      size={24}
-                      color={colors.gray[400]}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            {/* Login Button */}
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Login</Text>
-            </TouchableOpacity>
-
-            {/* Forgot Password Link */}
-            <TouchableOpacity>
-              <Text style={styles.forgotPassword}>Forgot Password?</Text>
-            </TouchableOpacity>
+        <View style={styles.content}>
+          {/* Icon */}
+          <View style={styles.iconContainer}>
+            <MaterialIcons name="admin-panel-settings" size={48} color={colors.primary} />
           </View>
-        </ScrollView>
+
+          {/* Title */}
+          <Text style={styles.title}>Admin Login</Text>
+          <Text style={styles.subtitle}>Sign in to manage the system.</Text>
+
+          {/* Form */}
+          <View style={styles.form}>
+            {/* Email Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Username or Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., admin@gov.country"
+                placeholderTextColor={colors.gray[400]}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Enter your password"
+                  placeholderTextColor={colors.gray[400]}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <MaterialIcons
+                    name={showPassword ? 'visibility' : 'visibility-off'}
+                    size={24}
+                    color={colors.gray[400]}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Login Button */}
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+
+          {/* Forgot Password Link */}
+          <TouchableOpacity>
+            <Text style={styles.forgotPassword}>Forgot Password?</Text>
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -112,9 +111,6 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
@@ -147,16 +143,16 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   form: {
-    gap: 16,
     marginBottom: 16,
   },
   inputGroup: {
-    gap: 8,
+    marginBottom: 16,
   },
   label: {
     fontSize: fontSizes.base,
     fontWeight: '500',
     color: colors.gray[700],
+    marginBottom: 8,
   },
   input: {
     height: 56,

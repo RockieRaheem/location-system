@@ -40,7 +40,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
   const loadDistricts = () => {
     try {
       const districts = locationService.getDistricts();
-      const units: AdminUnit[] = districts.slice(0, 50).map((district, index) => ({
+      const units: AdminUnit[] = districts.map((district, index) => ({
         id: `district-${index}`,
         name: district,
         type: 'District',
