@@ -1,13 +1,36 @@
 import React from 'react';
-import { StatusBar } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import AppNavigator from './src/navigation/AppNavigator';
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f6f6f8" />
-      <AppNavigator />
-    </GestureHandlerRootView>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Location System</Text>
+        <Text style={styles.subtitle}>App is loading...</Text>
+      </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f6f6f8',
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#135bec',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+});
