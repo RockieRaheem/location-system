@@ -7,16 +7,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
+import { locationService } from '../services/locationService';
 
 interface Location {
-  id: string;
+  type: 'district' | 'subcounty' | 'parish' | 'village';
   name: string;
-  type: string;
-  code: string;
-  icon: string;
+  path: string;
 }
 
 interface LocationSearchScreenProps {
@@ -25,64 +25,49 @@ interface LocationSearchScreenProps {
 
 export default function LocationSearchScreen({ navigation }: LocationSearchScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [locations] = useState<Location[]>([
-    {
-      id: '1',
-      name: 'Metropolis Central',
-      type: 'Capital City',
-      code: 'CTY-001',
-      icon: 'location-city',
-    },
-    {
-      id: '2',
-      name: 'Northwood Shire',
-      type: 'Province',
-      code: 'PRV-015',
-      icon: 'terrain',
-    },
-    {
-      id: '3',
-      name: 'Riverbend District',
-      type: 'District',
-      code: 'DST-102',
-      icon: 'business',
-    },
-    {
-      id: '4',
-      name: 'Sunnyvale',
-      type: 'Municipality',
-      code: 'MUN-340',
-      icon: 'domain',
-    },
-    {
-      id: '5',
-      name: 'Oakwood Village',
-      type: 'Village',
-      code: 'VLG-1121',
-      icon: 'cottage',
-    },
-  ]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const getIconName = (iconName: string): any => {
-    const iconMap: { [key: string]: any } = {
-      'location-city': 'location-city',
-      'terrain': 'terrain',
-      'business': 'business',
-      'domain': 'domain',
-      'cottage': 'cottage',
-    };
-    return iconMap[iconName] || 'place';
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.length >= 2) {
+      setIsSearching(true);
+      setTimeout(() => {
+        const results = locationService.searchLocations(query);
+        setLocations(results);
+        setIsSearching(false);
+      }, 300);
+    } else {
+      setLocations([]);
+    }
+  };
+
+  const getIconForType = (type: string) => {
+    switch (type) {
+      case 'district':
+        return 'location-city';
+      case 'subcounty':
+        return 'apartment';
+      case 'parish':
+        return 'place';
+      case 'village':
+        return 'home';
+      default:
+        return 'location-on';
+    }
+  };
+      code: 'VLG-1121',
   };
 
   const renderLocationItem = ({ item }: { item: Location }) => (
     <TouchableOpacity style={styles.locationCard}>
       <View style={styles.iconContainer}>
-        <MaterialIcons name={getIconName(item.icon)} size={24} color={colors.primary} />
+        <MaterialIcons name={getIconForType(item.type) as any} size={24} color={colors.primary} />
       </View>
       <View style={styles.locationInfo}>
         <Text style={styles.locationName}>{item.name}</Text>
-        <Text style={styles.locationType}>{item.type}</Text>
-        <Text style={styles.locationCode}>ID: {item.code}</Text>
+        <Text style={styles.locationType}>{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</Text>
+        <Text style={styles.locationCode}>{item.path}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -108,18 +93,37 @@ export default function LocationSearchScreen({ navigation }: LocationSearchScree
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by name, code, or type..."
+            placeholder="Search Uganda locations..."
             placeholderTextColor={colors.gray[500]}
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={handleSearch}
           />
         </View>
       </View>
 
       {/* Results List */}
-      <FlatList
-        data={locations}
-        renderItem={renderLocationItem}
+      {isSearching ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={locations}
+          renderItem={renderLocationItem}
+          keyExtractor={(item, index) => `${item.type}-${item.name}-${index}`}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="search-off" size={48} color={colors.gray[400]} />
+              <Text style={styles.emptyText}>
+                {searchQuery.length >= 2 ? 'No results found' : 'Enter at least 2 characters to search'}
+              </Text>
+            </View>
+          }
+        />
+      )}
+    </SafeAreaView>
+  );
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
       />
@@ -224,7 +228,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   locationCode: {
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.xs,
     color: colors.gray[600],
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 48,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: fontSizes.base,
+    color: colors.gray[500],
+    textAlign: 'center',
   },
 });
