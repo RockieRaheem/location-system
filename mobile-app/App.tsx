@@ -1,12 +1,13 @@
 import React from 'react';
-import { SafeAreaView, Text } from 'react-native';
-import LocationSelector from './components/LocationSelector';
+import { StatusBar } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <Text style={{ fontSize: 18, margin: 12 }}>Location System (Expo)</Text>
-      <LocationSelector onSelect={(loc) => console.log('selected', loc)} />
-    </SafeAreaView>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f6f6f8" />
+      <AppNavigator />
+    </GestureHandlerRootView>
   );
 }
