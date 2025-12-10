@@ -1,6 +1,4 @@
-// Import only what we need to avoid memory issues
-let ugLocationsData: any = null;
-
+// Interface definitions for Uganda location data
 export interface Village {
   village: string;
   parish: string;
@@ -35,24 +33,21 @@ export interface District {
 }
 
 class LocationService {
-  private data: any;
+  private ugLocations: any = null;
   private initialized: boolean = false;
 
-  constructor() {
-    this.data = null;
-  }
+  constructor() {}
 
   private async initialize() {
     if (this.initialized) return;
     
     try {
-      // Lazy load to avoid initial bundle size issues
-      const ugLocations = require('ug-locations');
-      this.data = ugLocations;
+      // Lazy load to avoid initial bundle size issues using dynamic import
+      const ugLocationsModule = await import('ug-locations');
+      this.ugLocations = ugLocationsModule.default;
       this.initialized = true;
     } catch (error) {
       console.error('Error loading ug-locations:', error);
-      this.data = { districts: [] };
       this.initialized = true;
     }
   }
@@ -60,17 +55,21 @@ class LocationService {
   // Get all districts
   async getDistricts(): Promise<string[]> {
     await this.initialize();
-    return this.data?.districts || [];
+    if (!this.ugLocations) return [];
+    return this.ugLocations.getDistricts() || [];
   }
 
   // Get district details with subcounties
   async getDistrictDetails(districtName: string): Promise<District | null> {
     await this.initialize();
-    const key = districtName.toUpperCase();
-    if (this.data?.byDistrict && this.data.byDistrict[key]) {
+    if (!this.ugLocations) return null;
+    
+    const subcounties = this.ugLocations.getSubcountiesInDistrict(districtName);
+    if (subcounties && subcounties.length > 0) {
       return {
-        ...this.data.byDistrict[key],
-        district: districtName
+        district: districtName,
+        number_of_subcounties: subcounties.length,
+        subcounties: subcounties
       };
     }
     return null;
@@ -79,10 +78,23 @@ class LocationService {
   // Get subcounty details with parishes
   async getSubcountyDetails(district: string, subcounty: string): Promise<Subcounty | null> {
     await this.initialize();
-    const key = `${district.toUpperCase()}||${subcounty.toUpperCase()}`;
-    if (this.data?.bySubcounty && this.data.bySubcounty[key]) {
+    if (!this.ugLocations) return null;
+    
+    const parishes = this.ugLocations.getParishesInSubcounty(district, subcounty);
+    if (parishes && parishes.length > 0) {
+      const data = parishes.map((parish: string) => {
+        const villages = this.ugLocations.getVillagesInParish(district, subcounty, parish);
+        return {
+          parish,
+          number_of_villages: villages.length,
+          villages
+        };
+      });
+      
       return {
-        ...this.data.bySubcounty[key],
+        subcounty,
+        number_of_subcounties: parishes.length,
+        data,
         district
       };
     }
@@ -92,9 +104,17 @@ class LocationService {
   // Get parish details with villages
   async getParishDetails(district: string, subcounty: string, parish: string): Promise<Parish | null> {
     await this.initialize();
-    const key = `${district.toUpperCase()}||${subcounty.toUpperCase()}||${parish.toUpperCase()}`;
-    if (this.data?.byParish && this.data.byParish[key]) {
-      return this.data.byParish[key];
+    if (!this.ugLocations) return null;
+    
+    const villages = this.ugLocations.getVillagesInParish(district, subcounty, parish);
+    if (villages && villages.length > 0) {
+      return {
+        parish,
+        number_of_villages: villages.length,
+        villages,
+        subcounty,
+        district
+      };
     }
     return null;
   }
@@ -102,62 +122,32 @@ class LocationService {
   // Get village details
   async getVillageDetails(villageName: string): Promise<Village | null> {
     await this.initialize();
-    const key = villageName.toUpperCase();
-    if (this.data?.byVillage && this.data.byVillage[key]) {
-      return this.data.byVillage[key];
-    }
-    return null;
+    if (!this.ugLocations) return null;
+    
+    const villageData = this.ugLocations.getLocationByVillage(villageName);
+    return villageData || null;
   }
 
-  // Search across all administrative levels
-  async searchLocations(query: string): Promise<Array<{
-    type: 'district' | 'subcounty' | 'parish' | 'village';
-    name: string;
-    path: string;
-  }>> {
+  // Search locations
+  async searchLocations(query: string): Promise<any[]> {
     await this.initialize();
+    if (!this.ugLocations) return [];
     
-    const results: Array<{
-      type: 'district' | 'subcounty' | 'parish' | 'village';
-      name: string;
-      path: string;
-    }> = [];
-    const searchTerm = query.toLowerCase();
+    // Use the built-in search with a reasonable limit
+    const results = this.ugLocations.search(query, { limit: 20 });
+    return results.map((result: any) => ({
+      type: this.getLocationType(result),
+      name: result.village || result.parish || result.subcounty || result.district,
+      path: `${result.district} → ${result.subcounty} → ${result.parish} → ${result.village}`
+    }));
+  }
 
-    // Search districts
-    const districts = await this.getDistricts();
-    districts.forEach(district => {
-      if (district.toLowerCase().includes(searchTerm)) {
-        results.push({
-          type: 'district',
-          name: district,
-          path: district
-        });
-      }
-    });
-
-    // Limit results to avoid performance issues
-    if (results.length > 20) {
-      return results.slice(0, 20);
-    }
-
-    // Search subcounties (limited)
-    if (this.data?.bySubcounty) {
-      const entries = Object.entries(this.data.bySubcounty).slice(0, 100);
-      for (const [key, value] of entries as [string, any][]) {
-        if (results.length >= 20) break;
-        const subcounty = value.subcounty;
-        if (subcounty.toLowerCase().includes(searchTerm)) {
-          results.push({
-            type: 'subcounty',
-            name: subcounty,
-            path: `${value.district} > ${subcounty}`
-          });
-        }
-      }
-    }
-
-    return results;
+  private getLocationType(location: any): string {
+    if (location.village) return 'village';
+    if (location.parish) return 'parish';
+    if (location.subcounty) return 'subcounty';
+    if (location.district) return 'district';
+    return 'unknown';
   }
 }
 

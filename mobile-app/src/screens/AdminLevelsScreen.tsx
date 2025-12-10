@@ -41,7 +41,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     try {
       setLoading(true);
       const districts = await locationService.getDistricts();
-      const units: AdminUnit[] = districts.map((district, index) => ({
+      const units: AdminUnit[] = districts.map((district: string, index: number) => ({
         id: `district-${index}`,
         name: district,
         type: 'District',
@@ -62,7 +62,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     try {
       const districtDetails = await locationService.getDistrictDetails(districtName);
       if (districtDetails && districtDetails.subcounties) {
-        return districtDetails.subcounties.map((subcounty, index) => ({
+        return districtDetails.subcounties.map((subcounty: string, index: number) => ({
           id: `${districtId}-subcounty-${index}`,
           name: subcounty,
           type: 'Subcounty',
@@ -82,7 +82,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     try {
       const subcountyDetails = await locationService.getSubcountyDetails(districtName, subcountyName);
       if (subcountyDetails && subcountyDetails.data) {
-        return subcountyDetails.data.map((parish, index) => ({
+        return subcountyDetails.data.map((parish: any, index: number) => ({
           id: `${subcountyId}-parish-${index}`,
           name: parish.parish,
           type: 'Parish',
@@ -102,7 +102,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     try {
       const parishDetails = await locationService.getParishDetails(districtName, subcountyName, parishName);
       if (parishDetails && parishDetails.villages) {
-        return parishDetails.villages.map((village, index) => ({
+        return parishDetails.villages.map((village: string, index: number) => ({
           id: `${parishId}-village-${index}`,
           name: village,
           type: 'Village',
