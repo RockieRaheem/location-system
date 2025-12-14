@@ -63,7 +63,7 @@ export const COUNTRIES: Country[] = [
   { id: 'GH', name: 'Ghana', code: 'GHA', flagUrl: 'https://flagcdn.com/w80/gh.png', continent: 'Africa' },
   { id: 'GN', name: 'Guinea', code: 'GIN', flagUrl: 'https://flagcdn.com/w80/gn.png', continent: 'Africa' },
   { id: 'GW', name: 'Guinea-Bissau', code: 'GNB', flagUrl: 'https://flagcdn.com/w80/gw.png', continent: 'Africa' },
-  { id: 'KE', name: 'Kenya', code: 'KEN', flagUrl: 'https://flagcdn.com/w80/ke.png', continent: 'Africa' },
+  { id: 'KE', name: 'Kenya', code: 'KEN', flagUrl: 'https://flagcdn.com/w80/ke.png', continent: 'Africa', isConfigured: true, adminLevelNames: ['Country', 'County', 'Constituency', 'Ward'] },
   { id: 'LS', name: 'Lesotho', code: 'LSO', flagUrl: 'https://flagcdn.com/w80/ls.png', continent: 'Africa' },
   { id: 'LR', name: 'Liberia', code: 'LBR', flagUrl: 'https://flagcdn.com/w80/lr.png', continent: 'Africa' },
   { id: 'LY', name: 'Libya', code: 'LBY', flagUrl: 'https://flagcdn.com/w80/ly.png', continent: 'Africa' },
