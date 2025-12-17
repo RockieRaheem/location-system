@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import admin from 'firebase-admin';
 import { config } from '../firebaseConfig.js';
+import ugandaRoutes from './ugandaRoutes.js';
 
 const app = express();
 app.use(cors());
@@ -13,20 +14,9 @@ if (!admin.apps.length) {
     credential: admin.credential.cert(config),
   });
 }
-const db = admin.firestore();
 
-// Example: Get all districts
-app.get('/api/uganda/districts', async (req, res) => {
-  try {
-    const snapshot = await db.collection('uganda_districts').get();
-    const districts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.json(districts);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// TODO: Add CRUD endpoints for counties, parishes, villages, etc.
+// Mount Uganda hierarchy API
+app.use('/api/uganda', ugandaRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
