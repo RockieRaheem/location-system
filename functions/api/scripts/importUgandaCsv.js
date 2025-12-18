@@ -1,8 +1,8 @@
-import fs from 'fs';
-import path from 'path';
-import csv from 'csv-parser';
-import admin from 'firebase-admin';
-import { config } from '../firebaseConfig.js';
+const fs = require('fs');
+const path = require('path');
+const csv = require('csv-parser');
+const admin = require('firebase-admin');
+const { config } = require('../firebaseConfig.js');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -16,31 +16,48 @@ const csvFilePath = path.resolve('../../ug2010.csv');
 
 const districts = {};
 
+// Keep track of current context for rows with empty cells
+let currentDistrict = null;
+let currentConstituency = null;
+let currentSubdivision = null;
+let currentParish = null;
+
 fs.createReadStream(csvFilePath)
   .pipe(csv())
   .on('data', (row) => {
     const district = row['District']?.trim();
     const constituency = row['Constituency']?.trim();
-    const subdivision = row['Subcounty/\r\nDivision']?.trim();
+    const subdivision = row['Subcounty/\rDivision']?.trim();  // Note: \r not \r\n
     const parish = row['Parish/Ward']?.trim();
     const village = row['Village/Cell']?.trim();
     
-    if (district) {
-      if (!districts[district]) districts[district] = { constituencies: {} };
-      if (constituency) {
-        if (!districts[district].constituencies[constituency]) {
-          districts[district].constituencies[constituency] = { subdivisions: {} };
+    // Update current context only if values are present
+    if (district && district.length > 0) currentDistrict = district;
+    if (constituency && constituency.length > 0) currentConstituency = constituency;
+    if (subdivision && subdivision.length > 0) currentSubdivision = subdivision;
+    if (parish && parish.length > 0) currentParish = parish;
+    
+    // Build hierarchy using current context
+    if (currentDistrict) {
+      if (!districts[currentDistrict]) districts[currentDistrict] = { constituencies: {} };
+      
+      if (currentConstituency) {
+        if (!districts[currentDistrict].constituencies[currentConstituency]) {
+          districts[currentDistrict].constituencies[currentConstituency] = { subdivisions: {} };
         }
-        if (subdivision) {
-          if (!districts[district].constituencies[constituency].subdivisions[subdivision]) {
-            districts[district].constituencies[constituency].subdivisions[subdivision] = { parishes: {} };
+        
+        if (currentSubdivision) {
+          if (!districts[currentDistrict].constituencies[currentConstituency].subdivisions[currentSubdivision]) {
+            districts[currentDistrict].constituencies[currentConstituency].subdivisions[currentSubdivision] = { parishes: {} };
           }
-          if (parish) {
-            if (!districts[district].constituencies[constituency].subdivisions[subdivision].parishes[parish]) {
-              districts[district].constituencies[constituency].subdivisions[subdivision].parishes[parish] = { villages: [] };
+          
+          if (currentParish) {
+            if (!districts[currentDistrict].constituencies[currentConstituency].subdivisions[currentSubdivision].parishes[currentParish]) {
+              districts[currentDistrict].constituencies[currentConstituency].subdivisions[currentSubdivision].parishes[currentParish] = { villages: [] };
             }
+            
             if (village && village.length > 0) {
-              districts[district].constituencies[constituency].subdivisions[subdivision].parishes[parish].villages.push(village);
+              districts[currentDistrict].constituencies[currentConstituency].subdivisions[currentSubdivision].parishes[currentParish].villages.push(village);
             }
           }
         }
@@ -48,12 +65,16 @@ fs.createReadStream(csvFilePath)
     }
   })
   .on('end', async () => {
-    // Upload to Firestore
-    for (const [district, dData] of Object.entries(districts)) {
+    // Upload to Firestore - Sort districts alphabetically
+    const sortedDistricts = Object.keys(districts).sort();
+    
+    for (const district of sortedDistricts) {
+      const dData = districts[district];
       await db.collection('uganda_districts').doc(district).set({
         constituencies: dData.constituencies
       });
+      console.log(`Imported: ${district}`);
     }
-    console.log('Uganda hierarchy imported to Firestore!');
+    console.log('\nUganda hierarchy imported to Firestore!');
     process.exit(0);
   });

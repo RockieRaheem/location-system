@@ -87,40 +87,40 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     }
   };
 
-  // Uganda counties
-  const loadCounties = async (district: string, districtId: string) => {
+  // Uganda constituencies
+  const loadConstituencies = async (district: string, districtId: string) => {
     try {
-      const counties = await ugandaApiService.getCounties(district);
-      return Object.keys(counties).map((county, idx) => ({
-        id: `${districtId}-county-${idx}`,
-        name: county,
-        type: 'County',
-        icon: 'apartment',
+      const constituencies = await ugandaApiService.getConstituencies(district);
+      return Object.keys(constituencies).map((constituency, idx) => ({
+        id: `${districtId}-constituency-${idx}`,
+        name: constituency,
+        type: 'Constituency',
+        icon: 'account-balance',
         level: 1,
         expanded: false,
         children: [],
       }));
     } catch (error) {
-      console.error('Error loading counties:', error);
+      console.error('Error loading constituencies:', error);
     }
     return [];
   };
 
-  // Uganda subcounties
-  const loadSubcounties = async (district: string, county: string, countyId: string) => {
+  // Uganda subdivisions
+  const loadSubdivisions = async (district: string, constituency: string, constituencyId: string) => {
     try {
-      const subcounties = await ugandaApiService.getSubcounties(district, county);
-      return Object.keys(subcounties).map((subcounty, idx) => ({
-        id: `${countyId}-subcounty-${idx}`,
-        name: subcounty,
-        type: 'Subcounty',
+      const subdivisions = await ugandaApiService.getSubdivisions(district, constituency);
+      return Object.keys(subdivisions).map((subdivision, idx) => ({
+        id: `${constituencyId}-subdivision-${idx}`,
+        name: subdivision,
+        type: 'Subdivision',
         icon: 'domain',
         level: 2,
         expanded: false,
         children: [],
       }));
     } catch (error) {
-      console.error('Error loading subcounties:', error);
+      console.error('Error loading subdivisions:', error);
     }
     return [];
   };
@@ -146,11 +146,11 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
 
 
   // Uganda parishes
-  const loadParishes = async (district: string, county: string, subcounty: string, subcountyId: string) => {
+  const loadParishes = async (district: string, constituency: string, subdivision: string, subdivisionId: string) => {
     try {
-      const parishes = await ugandaApiService.getParishes(district, county, subcounty);
+      const parishes = await ugandaApiService.getParishes(district, constituency, subdivision);
       return Object.keys(parishes).map((parish, idx) => ({
-        id: `${subcountyId}-parish-${idx}`,
+        id: `${subdivisionId}-parish-${idx}`,
         name: parish,
         type: 'Parish',
         icon: 'place',
@@ -184,9 +184,9 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
   };
 
   // Uganda villages
-  const loadVillages = async (district: string, county: string, subcounty: string, parish: string, parishId: string) => {
+  const loadVillages = async (district: string, constituency: string, subdivision: string, parish: string, parishId: string) => {
     try {
-      const villages = await ugandaApiService.getVillages(district, county, subcounty, parish);
+      const villages = await ugandaApiService.getVillages(district, constituency, subdivision, parish);
       return villages.map((village: string, idx: number) => ({
         id: `${parishId}-village-${idx}`,
         name: village,
@@ -242,7 +242,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
       } else {
         // Uganda logic (API)
         if (unit.type === 'District') {
-          const children = await loadCounties(unit.name, unit.id);
+          const children = await loadConstituencies(unit.name, unit.id);
           const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
             return units.map((u) => {
               if (u.id === id) {
@@ -256,10 +256,10 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
           };
           setAdminUnits(updateUnits(adminUnits));
           return;
-        } else if (unit.type === 'County' && unit.level === 1) {
+        } else if (unit.type === 'Constituency' && unit.level === 1) {
           const districtUnit = findParentDistrict(unit.id);
           if (districtUnit) {
-            const children = await loadSubcounties(districtUnit.name, unit.name, unit.id);
+            const children = await loadSubdivisions(districtUnit.name, unit.name, unit.id);
             const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
               return units.map((u) => {
                 if (u.id === id) {
@@ -274,11 +274,11 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
           setAdminUnits(updateUnits(adminUnits));
           return;
         }
-        } else if (unit.type === 'Subcounty' && unit.level === 2) {
+        } else if (unit.type === 'Subdivision' && unit.level === 2) {
           const districtUnit = findParentDistrict(unit.id);
-          const countyUnit = findParentSubcounty(unit.id);
-          if (districtUnit && countyUnit) {
-            const children = await loadParishes(districtUnit.name, countyUnit.name, unit.name, unit.id);
+          const constituencyUnit = findParentConstituency(unit.id);
+          if (districtUnit && constituencyUnit) {
+            const children = await loadParishes(districtUnit.name, constituencyUnit.name, unit.name, unit.id);
             const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
               return units.map((u) => {
                 if (u.id === id) {
@@ -295,8 +295,8 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
           }
         } else if (unit.type === 'Parish' && unit.level === 3) {
           const districtUnit = findParentDistrict(unit.id);
-          let countyUnit: AdminUnit | null = null;
-          let subcountyUnit: AdminUnit | null = null;
+          let constituencyUnit: AdminUnit | null = null;
+          let subdivisionUnit: AdminUnit | null = null;
           for (const d of adminUnits) {
             if (d.children) {
               for (const c of d.children) {
@@ -305,8 +305,8 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
                     if (s.children) {
                       for (const p of s.children) {
                         if (p.id === unit.id) {
-                          countyUnit = c;
-                          subcountyUnit = s;
+                          constituencyUnit = c;
+                          subdivisionUnit = s;
                         }
                       }
                     }
@@ -315,8 +315,8 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
               }
             }
           }
-          if (districtUnit && countyUnit && subcountyUnit) {
-            const children = await loadVillages(districtUnit.name, countyUnit.name, subcountyUnit.name, unit.name, unit.id);
+          if (districtUnit && constituencyUnit && subdivisionUnit) {
+            const children = await loadVillages(districtUnit.name, constituencyUnit.name, subdivisionUnit.name, unit.name, unit.id);
             const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
               return units.map((u) => {
                 if (u.id === id) {
@@ -359,12 +359,12 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     return null;
   };
 
-  const findParentSubcounty = (childId: string): AdminUnit | null => {
+  const findParentConstituency = (childId: string): AdminUnit | null => {
     for (const district of adminUnits) {
       if (district.children) {
-        for (const subcounty of district.children) {
-          if (subcounty.type === 'Subcounty' && childId.startsWith(subcounty.id)) {
-            return subcounty;
+        for (const constituency of district.children) {
+          if (constituency.type === 'Constituency' && childId.startsWith(constituency.id)) {
+            return constituency;
           }
         }
       }

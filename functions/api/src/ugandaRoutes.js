@@ -12,6 +12,8 @@ router.get('/districts', async (req, res) => {
     const db = admin.firestore();
     const snapshot = await db.collection('uganda_districts').get();
     const districts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Sort alphabetically by district name (id)
+    districts.sort((a, b) => a.id.localeCompare(b.id));
     res.json(districts);
   } catch (err) {
     res.status(500).json({ error: err.message });
