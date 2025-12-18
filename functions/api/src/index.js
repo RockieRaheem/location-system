@@ -1,8 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import admin from 'firebase-admin';
-import { config } from '../firebaseConfig.js';
-import ugandaRoutes from './ugandaRoutes.js';
+
+const express = require('express');
+const cors = require('cors');
+const admin = require('firebase-admin');
+const { config } = require('../firebaseConfig.js');
+const ugandaRoutes = require('./ugandaRoutes.js');
 
 const app = express();
 app.use(cors());

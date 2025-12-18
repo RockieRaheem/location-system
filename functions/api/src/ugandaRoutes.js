@@ -1,15 +1,17 @@
-import express from 'express';
-import admin from 'firebase-admin';
+
+const express = require('express');
+const admin = require('firebase-admin');
 
 const router = express.Router();
-const db = admin.firestore();
 
 // Helper to get collection references
-const getDistrictRef = (district) => db.collection('uganda_districts').doc(district);
+const getDistrictRef = (db, district) => db.collection('uganda_districts').doc(district);
 
 // --- DISTRICTS ---
+
 router.get('/districts', async (req, res) => {
   try {
+    const db = admin.firestore();
     const snapshot = await db.collection('uganda_districts').get();
     const districts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json(districts);
@@ -18,8 +20,10 @@ router.get('/districts', async (req, res) => {
   }
 });
 
+
 router.post('/districts', async (req, res) => {
   try {
+    const db = admin.firestore();
     const { name } = req.body;
     await db.collection('uganda_districts').doc(name).set({ counties: {} });
     res.status(201).json({ message: 'District created' });
@@ -28,20 +32,24 @@ router.post('/districts', async (req, res) => {
   }
 });
 
+
 router.put('/districts/:district', async (req, res) => {
   try {
+    const db = admin.firestore();
     const { district } = req.params;
-    await getDistrictRef(district).update(req.body);
+    await getDistrictRef(db, district).update(req.body);
     res.json({ message: 'District updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+
 router.delete('/districts/:district', async (req, res) => {
   try {
+    const db = admin.firestore();
     const { district } = req.params;
-    await getDistrictRef(district).delete();
+    await getDistrictRef(db, district).delete();
     res.json({ message: 'District deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -49,10 +57,12 @@ router.delete('/districts/:district', async (req, res) => {
 });
 
 // --- COUNTIES ---
+
 router.get('/districts/:district/counties', async (req, res) => {
   try {
+    const db = admin.firestore();
     const { district } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const counties = doc.data().counties || {};
     res.json(counties);
@@ -61,16 +71,18 @@ router.get('/districts/:district/counties', async (req, res) => {
   }
 });
 
+
 router.post('/districts/:district/counties', async (req, res) => {
   try {
+    const db = admin.firestore();
     const { district } = req.params;
     const { name } = req.body;
-    const doc = await getDistrictRef(district).get();
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
     data.counties = data.counties || {};
     data.counties[name] = { subcounties: {} };
-    await getDistrictRef(district).update({ counties: data.counties });
+    await getDistrictRef(db, district).update({ counties: data.counties });
     res.status(201).json({ message: 'County added' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -296,4 +308,4 @@ router.delete('/districts/:district/counties/:county/subcounties/:subcounty/pari
   }
 });
 
-export default router;
+module.exports = router;
