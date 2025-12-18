@@ -1,0 +1,6 @@
+# Add serviceAccountKey.json to gitignore
+serviceAccountKey.json
+node_modules/
+.env
+dist/
+*.log
