@@ -7,20 +7,20 @@ export const ugandaApiService = {
     const res = await axios.get(`${API_BASE}/districts`);
     return res.data;
   },
-  async getCounties(district: string) {
-    const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/counties`);
+  async getConstituencies(district: string) {
+    const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/constituencies`);
     return res.data;
   },
-  async getSubcounties(district: string, county: string) {
-    const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/counties/${encodeURIComponent(county)}/subcounties`);
+  async getSubdivisions(district: string, constituency: string) {
+    const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/constituencies/${encodeURIComponent(constituency)}/subdivisions`);
     return res.data;
   },
-  async getParishes(district: string, county: string, subcounty: string) {
-    const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/counties/${encodeURIComponent(county)}/subcounties/${encodeURIComponent(subcounty)}/parishes`);
+  async getParishes(district: string, constituency: string, subdivision: string) {
+    const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/constituencies/${encodeURIComponent(constituency)}/subdivisions/${encodeURIComponent(subdivision)}/parishes`);
     return res.data;
   },
-  async getVillages(district: string, county: string, subcounty: string, parish: string) {
-    const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/counties/${encodeURIComponent(county)}/subcounties/${encodeURIComponent(subcounty)}/parishes/${encodeURIComponent(parish)}/villages`);
+  async getVillages(district: string, constituency: string, subdivision: string, parish: string) {
+    const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/constituencies/${encodeURIComponent(constituency)}/subdivisions/${encodeURIComponent(subdivision)}/parishes/${encodeURIComponent(parish)}/villages`);
     return res.data;
   }
 };

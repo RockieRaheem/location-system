@@ -1,14 +1,12 @@
-
 const express = require('express');
 const admin = require('firebase-admin');
 
 const router = express.Router();
 
-// Helper to get collection references
+// Helper to get district reference
 const getDistrictRef = (db, district) => db.collection('uganda_districts').doc(district);
 
 // --- DISTRICTS ---
-
 router.get('/districts', async (req, res) => {
   try {
     const db = admin.firestore();
@@ -20,18 +18,16 @@ router.get('/districts', async (req, res) => {
   }
 });
 
-
 router.post('/districts', async (req, res) => {
   try {
     const db = admin.firestore();
     const { name } = req.body;
-    await db.collection('uganda_districts').doc(name).set({ counties: {} });
+    await db.collection('uganda_districts').doc(name).set({ constituencies: {} });
     res.status(201).json({ message: 'District created' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 router.put('/districts/:district', async (req, res) => {
   try {
@@ -44,7 +40,6 @@ router.put('/districts/:district', async (req, res) => {
   }
 });
 
-
 router.delete('/districts/:district', async (req, res) => {
   try {
     const db = admin.firestore();
@@ -56,23 +51,21 @@ router.delete('/districts/:district', async (req, res) => {
   }
 });
 
-// --- COUNTIES ---
-
-router.get('/districts/:district/counties', async (req, res) => {
+// --- CONSTITUENCIES ---
+router.get('/districts/:district/constituencies', async (req, res) => {
   try {
     const db = admin.firestore();
     const { district } = req.params;
     const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
-    const counties = doc.data().counties || {};
-    res.json(counties);
+    const constituencies = doc.data().constituencies || {};
+    res.json(constituencies);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-
-router.post('/districts/:district/counties', async (req, res) => {
+router.post('/districts/:district/constituencies', async (req, res) => {
   try {
     const db = admin.firestore();
     const { district } = req.params;
@@ -80,163 +73,162 @@ router.post('/districts/:district/counties', async (req, res) => {
     const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    data.counties[name] = { subcounties: {} };
-    await getDistrictRef(db, district).update({ counties: data.counties });
-    res.status(201).json({ message: 'County added' });
+    data.constituencies = data.constituencies || {};
+    data.constituencies[name] = { subdivisions: {} };
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
+    res.status(201).json({ message: 'Constituency added' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.put('/districts/:district/counties/:county', async (req, res) => {
+router.put('/districts/:district/constituencies/:constituency', async (req, res) => {
   try {
-    const { district, county } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    data.counties[county] = { ...data.counties[county], ...req.body };
-    await getDistrictRef(district).update({ counties: data.counties });
-    res.json({ message: 'County updated' });
+    data.constituencies = data.constituencies || {};
+    data.constituencies[constituency] = { ...data.constituencies[constituency], ...req.body };
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
+    res.json({ message: 'Constituency updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.delete('/districts/:district/counties/:county', async (req, res) => {
+router.delete('/districts/:district/constituencies/:constituency', async (req, res) => {
   try {
-    const { district, county } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    delete data.counties[county];
-    await getDistrictRef(district).update({ counties: data.counties });
-    res.json({ message: 'County deleted' });
+    delete data.constituencies[constituency];
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
+    res.json({ message: 'Constituency deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// --- SUBCOUNTIES ---
-router.get('/districts/:district/counties/:county/subcounties', async (req, res) => {
+// --- SUBDIVISIONS ---
+router.get('/districts/:district/constituencies/:constituency/subdivisions', async (req, res) => {
   try {
-    const { district, county } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
-    const subcounties = (doc.data().counties?.[county]?.subcounties) || {};
-    res.json(subcounties);
+    const subdivisions = doc.data().constituencies?.[constituency]?.subdivisions || {};
+    res.json(subdivisions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post('/districts/:district/counties/:county/subcounties', async (req, res) => {
+router.post('/districts/:district/constituencies/:constituency/subdivisions', async (req, res) => {
   try {
-    const { district, county } = req.params;
+    const db = admin.firestore();
+    const { district, constituency } = req.params;
     const { name } = req.body;
-    const doc = await getDistrictRef(district).get();
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    data.counties[county] = data.counties[county] || { subcounties: {} };
-    data.counties[county].subcounties[name] = { parishes: {} };
-    await getDistrictRef(district).update({ counties: data.counties });
-    res.status(201).json({ message: 'Subcounty added' });
+    data.constituencies = data.constituencies || {};
+    data.constituencies[constituency] = data.constituencies[constituency] || { subdivisions: {} };
+    data.constituencies[constituency].subdivisions[name] = { parishes: {} };
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
+    res.status(201).json({ message: 'Subdivision added' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.put('/districts/:district/counties/:county/subcounties/:subcounty', async (req, res) => {
+router.put('/districts/:district/constituencies/:constituency/subdivisions/:subdivision', async (req, res) => {
   try {
-    const { district, county, subcounty } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency, subdivision } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    data.counties[county] = data.counties[county] || { subcounties: {} };
-    data.counties[county].subcounties[subcounty] = { ...data.counties[county].subcounties[subcounty], ...req.body };
-    await getDistrictRef(district).update({ counties: data.counties });
-    res.json({ message: 'Subcounty updated' });
+    data.constituencies[constituency].subdivisions[subdivision] = { ...data.constituencies[constituency].subdivisions[subdivision], ...req.body };
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
+    res.json({ message: 'Subdivision updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.delete('/districts/:district/counties/:county/subcounties/:subcounty', async (req, res) => {
+router.delete('/districts/:district/constituencies/:constituency/subdivisions/:subdivision', async (req, res) => {
   try {
-    const { district, county, subcounty } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency, subdivision } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    delete data.counties[county].subcounties[subcounty];
-    await getDistrictRef(district).update({ counties: data.counties });
-    res.json({ message: 'Subcounty deleted' });
+    delete data.constituencies[constituency].subdivisions[subdivision];
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
+    res.json({ message: 'Subdivision deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // --- PARISHES ---
-router.get('/districts/:district/counties/:county/subcounties/:subcounty/parishes', async (req, res) => {
+router.get('/districts/:district/constituencies/:constituency/subdivisions/:subdivision/parishes', async (req, res) => {
   try {
-    const { district, county, subcounty } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency, subdivision } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
-    const parishes = (doc.data().counties?.[county]?.subcounties?.[subcounty]?.parishes) || {};
+    const parishes = doc.data().constituencies?.[constituency]?.subdivisions?.[subdivision]?.parishes || {};
     res.json(parishes);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post('/districts/:district/counties/:county/subcounties/:subcounty/parishes', async (req, res) => {
+router.post('/districts/:district/constituencies/:constituency/subdivisions/:subdivision/parishes', async (req, res) => {
   try {
-    const { district, county, subcounty } = req.params;
+    const db = admin.firestore();
+    const { district, constituency, subdivision } = req.params;
     const { name } = req.body;
-    const doc = await getDistrictRef(district).get();
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    data.counties[county] = data.counties[county] || { subcounties: {} };
-    data.counties[county].subcounties[subcounty] = data.counties[county].subcounties[subcounty] || { parishes: {} };
-    data.counties[county].subcounties[subcounty].parishes[name] = { villages: [] };
-    await getDistrictRef(district).update({ counties: data.counties });
+    data.constituencies[constituency].subdivisions[subdivision].parishes[name] = { villages: [] };
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
     res.status(201).json({ message: 'Parish added' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.put('/districts/:district/counties/:county/subcounties/:subcounty/parishes/:parish', async (req, res) => {
+router.put('/districts/:district/constituencies/:constituency/subdivisions/:subdivision/parishes/:parish', async (req, res) => {
   try {
-    const { district, county, subcounty, parish } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency, subdivision, parish } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    data.counties[county] = data.counties[county] || { subcounties: {} };
-    data.counties[county].subcounties[subcounty] = data.counties[county].subcounties[subcounty] || { parishes: {} };
-    data.counties[county].subcounties[subcounty].parishes[parish] = { ...data.counties[county].subcounties[subcounty].parishes[parish], ...req.body };
-    await getDistrictRef(district).update({ counties: data.counties });
+    data.constituencies[constituency].subdivisions[subdivision].parishes[parish] = { ...data.constituencies[constituency].subdivisions[subdivision].parishes[parish], ...req.body };
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
     res.json({ message: 'Parish updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.delete('/districts/:district/counties/:county/subcounties/:subcounty/parishes/:parish', async (req, res) => {
+router.delete('/districts/:district/constituencies/:constituency/subdivisions/:subdivision/parishes/:parish', async (req, res) => {
   try {
-    const { district, county, subcounty, parish } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency, subdivision, parish } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    delete data.counties[county].subcounties[subcounty].parishes[parish];
-    await getDistrictRef(district).update({ counties: data.counties });
+    delete data.constituencies[constituency].subdivisions[subdivision].parishes[parish];
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
     res.json({ message: 'Parish deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -244,64 +236,66 @@ router.delete('/districts/:district/counties/:county/subcounties/:subcounty/pari
 });
 
 // --- VILLAGES ---
-router.get('/districts/:district/counties/:county/subcounties/:subcounty/parishes/:parish/villages', async (req, res) => {
+router.get('/districts/:district/constituencies/:constituency/subdivisions/:subdivision/parishes/:parish/villages', async (req, res) => {
   try {
-    const { district, county, subcounty, parish } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency, subdivision, parish } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
-    const villages = (doc.data().counties?.[county]?.subcounties?.[subcounty]?.parishes?.[parish]?.villages) || [];
+    const villages = doc.data().constituencies?.[constituency]?.subdivisions?.[subdivision]?.parishes?.[parish]?.villages || [];
     res.json(villages);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post('/districts/:district/counties/:county/subcounties/:subcounty/parishes/:parish/villages', async (req, res) => {
+router.post('/districts/:district/constituencies/:constituency/subdivisions/:subdivision/parishes/:parish/villages', async (req, res) => {
   try {
-    const { district, county, subcounty, parish } = req.params;
+    const db = admin.firestore();
+    const { district, constituency, subdivision, parish } = req.params;
     const { name } = req.body;
-    const doc = await getDistrictRef(district).get();
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    data.counties = data.counties || {};
-    data.counties[county] = data.counties[county] || { subcounties: {} };
-    data.counties[county].subcounties[subcounty] = data.counties[county].subcounties[subcounty] || { parishes: {} };
-    data.counties[county].subcounties[subcounty].parishes[parish] = data.counties[county].subcounties[subcounty].parishes[parish] || { villages: [] };
-    data.counties[county].subcounties[subcounty].parishes[parish].villages.push(name);
-    await getDistrictRef(district).update({ counties: data.counties });
+    let villages = data.constituencies[constituency].subdivisions[subdivision].parishes[parish].villages || [];
+    villages.push(name);
+    data.constituencies[constituency].subdivisions[subdivision].parishes[parish].villages = villages;
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
     res.status(201).json({ message: 'Village added' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.put('/districts/:district/counties/:county/subcounties/:subcounty/parishes/:parish/villages/:village', async (req, res) => {
+router.put('/districts/:district/constituencies/:constituency/subdivisions/:subdivision/parishes/:parish/villages/:village', async (req, res) => {
   try {
-    const { district, county, subcounty, parish, village } = req.params;
+    const db = admin.firestore();
+    const { district, constituency, subdivision, parish, village } = req.params;
     const { newName } = req.body;
-    const doc = await getDistrictRef(district).get();
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    let villages = (data.counties?.[county]?.subcounties?.[subcounty]?.parishes?.[parish]?.villages) || [];
+    let villages = data.constituencies[constituency].subdivisions[subdivision].parishes[parish].villages || [];
     villages = villages.map(v => (v === village ? newName : v));
-    data.counties[county].subcounties[subcounty].parishes[parish].villages = villages;
-    await getDistrictRef(district).update({ counties: data.counties });
+    data.constituencies[constituency].subdivisions[subdivision].parishes[parish].villages = villages;
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
     res.json({ message: 'Village updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.delete('/districts/:district/counties/:county/subcounties/:subcounty/parishes/:parish/villages/:village', async (req, res) => {
+router.delete('/districts/:district/constituencies/:constituency/subdivisions/:subdivision/parishes/:parish/villages/:village', async (req, res) => {
   try {
-    const { district, county, subcounty, parish, village } = req.params;
-    const doc = await getDistrictRef(district).get();
+    const db = admin.firestore();
+    const { district, constituency, subdivision, parish, village } = req.params;
+    const doc = await getDistrictRef(db, district).get();
     if (!doc.exists) return res.status(404).json({ error: 'District not found' });
     const data = doc.data();
-    let villages = (data.counties?.[county]?.subcounties?.[subcounty]?.parishes?.[parish]?.villages) || [];
+    let villages = data.constituencies[constituency].subdivisions[subdivision].parishes[parish].villages || [];
     villages = villages.filter(v => v !== village);
-    data.counties[county].subcounties[subcounty].parishes[parish].villages = villages;
-    await getDistrictRef(district).update({ counties: data.counties });
+    data.constituencies[constituency].subdivisions[subdivision].parishes[parish].villages = villages;
+    await getDistrictRef(db, district).update({ constituencies: data.constituencies });
     res.json({ message: 'Village deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });

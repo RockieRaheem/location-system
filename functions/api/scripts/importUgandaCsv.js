@@ -20,20 +20,27 @@ fs.createReadStream(csvFilePath)
   .pipe(csv())
   .on('data', (row) => {
     const district = row['District']?.trim();
-    const county = row['Constituency']?.trim();
-    const subcounty = row['Subcounty/\r\nDivision']?.trim();
+    const constituency = row['Constituency']?.trim();
+    const subdivision = row['Subcounty/\r\nDivision']?.trim();
     const parish = row['Parish/Ward']?.trim();
     const village = row['Village/Cell']?.trim();
+    
     if (district) {
-      if (!districts[district]) districts[district] = { counties: {} };
-      if (county) {
-        if (!districts[district].counties[county]) districts[district].counties[county] = { subcounties: {} };
-        if (subcounty) {
-          if (!districts[district].counties[county].subcounties[subcounty]) districts[district].counties[county].subcounties[subcounty] = { parishes: {} };
+      if (!districts[district]) districts[district] = { constituencies: {} };
+      if (constituency) {
+        if (!districts[district].constituencies[constituency]) {
+          districts[district].constituencies[constituency] = { subdivisions: {} };
+        }
+        if (subdivision) {
+          if (!districts[district].constituencies[constituency].subdivisions[subdivision]) {
+            districts[district].constituencies[constituency].subdivisions[subdivision] = { parishes: {} };
+          }
           if (parish) {
-            if (!districts[district].counties[county].subcounties[subcounty].parishes[parish]) districts[district].counties[county].subcounties[subcounty].parishes[parish] = { villages: [] };
-            if (village) {
-              districts[district].counties[county].subcounties[subcounty].parishes[parish].villages.push(village);
+            if (!districts[district].constituencies[constituency].subdivisions[subdivision].parishes[parish]) {
+              districts[district].constituencies[constituency].subdivisions[subdivision].parishes[parish] = { villages: [] };
+            }
+            if (village && village.length > 0) {
+              districts[district].constituencies[constituency].subdivisions[subdivision].parishes[parish].villages.push(village);
             }
           }
         }
@@ -44,7 +51,7 @@ fs.createReadStream(csvFilePath)
     // Upload to Firestore
     for (const [district, dData] of Object.entries(districts)) {
       await db.collection('uganda_districts').doc(district).set({
-        counties: dData.counties
+        constituencies: dData.constituencies
       });
     }
     console.log('Uganda hierarchy imported to Firestore!');
