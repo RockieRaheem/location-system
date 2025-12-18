@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
-import { locationService } from '../services/locationService';
+import { ugandaApiService } from '../services/ugandaApiService';
 import { kenyaLocationService } from '../services/kenyaLocationService';
 import { StyledFlatList } from '../../components/StyledFlatList';
 
@@ -39,18 +39,18 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     if (country.name === 'Kenya') {
       loadKenyaCounties();
     } else {
-      loadDistricts();
+      loadUgandaDistricts();
     }
   }, []);
 
-  // Uganda (default)
-  const loadDistricts = async () => {
+  // Uganda (API)
+  const loadUgandaDistricts = async () => {
     try {
       setLoading(true);
-      const districts = await locationService.getDistricts();
-      const units: AdminUnit[] = districts.map((district: string, index: number) => ({
+      const districts = await ugandaApiService.getDistricts();
+      const units: AdminUnit[] = districts.map((district: any, index: number) => ({
         id: `district-${index}`,
-        name: district,
+        name: district.id,
         type: 'District',
         icon: 'location-city',
         level: 0,
@@ -87,21 +87,38 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     }
   };
 
-  // Uganda subcounties
-  const loadSubcounties = async (districtName: string, districtId: string) => {
+  // Uganda counties
+  const loadCounties = async (district: string, districtId: string) => {
     try {
-      const districtDetails = await locationService.getDistrictDetails(districtName);
-      if (districtDetails && districtDetails.subcounties) {
-        return districtDetails.subcounties.map((subcounty: string, index: number) => ({
-          id: `${districtId}-subcounty-${index}`,
-          name: subcounty,
-          type: 'Subcounty',
-          icon: 'apartment',
-          level: 1,
-          expanded: false,
-          children: [],
-        }));
-      }
+      const counties = await ugandaApiService.getCounties(district);
+      return Object.keys(counties).map((county, idx) => ({
+        id: `${districtId}-county-${idx}`,
+        name: county,
+        type: 'County',
+        icon: 'apartment',
+        level: 1,
+        expanded: false,
+        children: [],
+      }));
+    } catch (error) {
+      console.error('Error loading counties:', error);
+    }
+    return [];
+  };
+
+  // Uganda subcounties
+  const loadSubcounties = async (district: string, county: string, countyId: string) => {
+    try {
+      const subcounties = await ugandaApiService.getSubcounties(district, county);
+      return Object.keys(subcounties).map((subcounty, idx) => ({
+        id: `${countyId}-subcounty-${idx}`,
+        name: subcounty,
+        type: 'Subcounty',
+        icon: 'domain',
+        level: 2,
+        expanded: false,
+        children: [],
+      }));
     } catch (error) {
       console.error('Error loading subcounties:', error);
     }
@@ -129,20 +146,18 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
 
 
   // Uganda parishes
-  const loadParishes = async (districtName: string, subcountyName: string, subcountyId: string) => {
+  const loadParishes = async (district: string, county: string, subcounty: string, subcountyId: string) => {
     try {
-      const subcountyDetails = await locationService.getSubcountyDetails(districtName, subcountyName);
-      if (subcountyDetails && subcountyDetails.data) {
-        return subcountyDetails.data.map((parish: any, index: number) => ({
-          id: `${subcountyId}-parish-${index}`,
-          name: parish.parish,
-          type: 'Parish',
-          icon: 'place',
-          level: 2,
-          expanded: false,
-          children: [],
-        }));
-      }
+      const parishes = await ugandaApiService.getParishes(district, county, subcounty);
+      return Object.keys(parishes).map((parish, idx) => ({
+        id: `${subcountyId}-parish-${idx}`,
+        name: parish,
+        type: 'Parish',
+        icon: 'place',
+        level: 3,
+        expanded: false,
+        children: [],
+      }));
     } catch (error) {
       console.error('Error loading parishes:', error);
     }
@@ -168,19 +183,18 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     return [];
   };
 
-  const loadVillages = async (districtName: string, subcountyName: string, parishName: string, parishId: string) => {
+  // Uganda villages
+  const loadVillages = async (district: string, county: string, subcounty: string, parish: string, parishId: string) => {
     try {
-      const parishDetails = await locationService.getParishDetails(districtName, subcountyName, parishName);
-      if (parishDetails && parishDetails.villages) {
-        return parishDetails.villages.map((village: string, index: number) => ({
-          id: `${parishId}-village-${index}`,
-          name: village,
-          type: 'Village',
-          icon: 'home',
-          level: 3,
-          children: [],
-        }));
-      }
+      const villages = await ugandaApiService.getVillages(district, county, subcounty, parish);
+      return villages.map((village: string, idx: number) => ({
+        id: `${parishId}-village-${idx}`,
+        name: village,
+        type: 'Village',
+        icon: 'home',
+        level: 4,
+        children: [],
+      }));
     } catch (error) {
       console.error('Error loading villages:', error);
     }
@@ -226,9 +240,9 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
           }
         }
       } else {
-        // Uganda logic (default)
+        // Uganda logic (API)
         if (unit.type === 'District') {
-          const children = await loadSubcounties(unit.name, unit.id);
+          const children = await loadCounties(unit.name, unit.id);
           const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
             return units.map((u) => {
               if (u.id === id) {
@@ -242,11 +256,29 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
           };
           setAdminUnits(updateUnits(adminUnits));
           return;
-        } else if (unit.type === 'Subcounty' && unit.level === 1) {
-          // Need to get parent district name
+        } else if (unit.type === 'County' && unit.level === 1) {
           const districtUnit = findParentDistrict(unit.id);
           if (districtUnit) {
-            const children = await loadParishes(districtUnit.name, unit.name, unit.id);
+            const children = await loadSubcounties(districtUnit.name, unit.name, unit.id);
+            const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
+              return units.map((u) => {
+                if (u.id === id) {
+                  return { ...u, children, expanded: true };
+                }
+                if (u.children) {
+                  return { ...u, children: updateUnits(u.children) };
+                }
+                return u;
+              });
+            };
+          setAdminUnits(updateUnits(adminUnits));
+          return;
+        }
+        } else if (unit.type === 'Subcounty' && unit.level === 2) {
+          const districtUnit = findParentDistrict(unit.id);
+          const countyUnit = findParentSubcounty(unit.id);
+          if (districtUnit && countyUnit) {
+            const children = await loadParishes(districtUnit.name, countyUnit.name, unit.name, unit.id);
             const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
               return units.map((u) => {
                 if (u.id === id) {
@@ -261,11 +293,30 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
             setAdminUnits(updateUnits(adminUnits));
             return;
           }
-        } else if (unit.type === 'Parish' && unit.level === 2) {
+        } else if (unit.type === 'Parish' && unit.level === 3) {
           const districtUnit = findParentDistrict(unit.id);
-          const subcountyUnit = findParentSubcounty(unit.id);
-          if (districtUnit && subcountyUnit) {
-            const children = await loadVillages(districtUnit.name, subcountyUnit.name, unit.name, unit.id);
+          let countyUnit: AdminUnit | null = null;
+          let subcountyUnit: AdminUnit | null = null;
+          for (const d of adminUnits) {
+            if (d.children) {
+              for (const c of d.children) {
+                if (c.children) {
+                  for (const s of c.children) {
+                    if (s.children) {
+                      for (const p of s.children) {
+                        if (p.id === unit.id) {
+                          countyUnit = c;
+                          subcountyUnit = s;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          if (districtUnit && countyUnit && subcountyUnit) {
+            const children = await loadVillages(districtUnit.name, countyUnit.name, subcountyUnit.name, unit.name, unit.id);
             const updateUnits = (units: AdminUnit[]): AdminUnit[] => {
               return units.map((u) => {
                 if (u.id === id) {
