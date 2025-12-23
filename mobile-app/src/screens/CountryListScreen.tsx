@@ -9,129 +9,13 @@ import {
   SectionList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, fontSizes } from '../theme';
+import { colors } from '../theme';
 import { COUNTRIES, CONTINENTS, Country } from '../data/countries';
 import { getScrollbarProps } from '../theme/scrollbar';
-
-interface CountrySection {
-  continent: string;
-  data: Country[];
-}
-
 interface CountryListScreenProps {
   navigation: any;
 }
-
-export default function CountryListScreen({ navigation }: CountryListScreenProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const sections = useMemo(() => {
-    const filteredCountries = COUNTRIES.filter((country) =>
-      country.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const countrySections: CountrySection[] = CONTINENTS.map((continent) => ({
-      continent,
-      data: filteredCountries.filter((country) => country.continent === continent),
-    })).filter((section) => section.data.length > 0);
-
-    return countrySections;
-  }, [searchQuery]);
-
-  const handleCountryPress = (country: Country) => {
-    if (country.isConfigured) {
-      navigation.navigate('AdminLevels', { country });
-    } else {
-      navigation.navigate('CountryConfig', { country });
-    }
-  };
-
-  const renderCountryItem = ({ item }: { item: Country }) => (
-    <TouchableOpacity
-      style={styles.countryItem}
-      onPress={() => handleCountryPress(item)}
-    >
-      <Image source={{ uri: item.flagUrl }} style={styles.flag} />
-      <View style={styles.countryInfo}>
-        <Text style={styles.countryName}>{item.name}</Text>
-        <View style={styles.countryMeta}>
-          <Text style={styles.countryCode}>{item.code}</Text>
-          {item.phoneCode && (
-            <>
-              <Text style={styles.metaDivider}>•</Text>
-              <Text style={styles.countryCode}>{item.phoneCode}</Text>
-            </>
-          )}
-        </View>
-        {item.isConfigured ? (
-          <View style={styles.configBadge}>
-            <MaterialIcons name="check-circle" size={14} color={colors.success.DEFAULT} />
-            <Text style={styles.configText}>Configured</Text>
-          </View>
-        ) : (
-          <View style={[styles.configBadge, styles.notConfiguredBadge]}>
-            <MaterialIcons name="settings" size={14} color={colors.gray[600]} />
-            <Text style={[styles.configText, styles.notConfiguredText]}>Setup Required</Text>
-          </View>
-        )}
-      </View>
-      <MaterialIcons name="chevron-right" size={24} color={colors.gray[500]} />
-    </TouchableOpacity>
-  );
-
-  const renderSectionHeader = ({ section }: { section: CountrySection }) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{section.continent}</Text>
-      <Text style={styles.sectionCount}>{section.data.length} countries</Text>
-    </View>
-  );
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialIcons name="arrow-back" size={24} color={colors.gray[900]} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Select Country</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <View style={styles.searchContainer}>
-        <MaterialIcons
-          name="search"
-          size={20}
-          color={colors.gray[500]}
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search countries..."
-          placeholderTextColor={colors.gray[500]}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <MaterialIcons name="close" size={20} color={colors.gray[500]} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <SectionList
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        renderItem={renderCountryItem}
-        renderSectionHeader={renderSectionHeader}
-        contentContainerStyle={styles.listContent}
-        stickySectionHeadersEnabled={true}
-        {...getScrollbarProps()}
-      />
-    </View>
-  );
-}
+  // Removed stray closing brace
 
 const styles = StyleSheet.create({
   container: {
@@ -139,110 +23,93 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundLight,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.white,
+    padding: 20,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
   },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: fontSizes.xl,
-    fontWeight: '600',
-    color: colors.gray[900],
-  },
-  placeholder: {
-    width: 40,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.gray[50],
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    marginTop: 8,
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.primary,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.gray[200],
-  },
-  searchIcon: {
-    marginRight: 8,
   },
   searchInput: {
-    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: 8,
+    padding: 10,
     fontSize: 16,
-    color: colors.gray[900],
+    backgroundColor: '#fafbfc',
+    marginBottom: 12,
+  },
+  adminButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: '#f0f4ff',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  adminButtonText: {
+    color: colors.primary,
+    fontWeight: 'bold',
+    fontSize: 15,
+    marginLeft: 6,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.gray[100],
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[200],
-  },
-  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.primary,
-  },
-  sectionCount: {
-    fontSize: 14,
-    color: colors.gray[600],
-  },
-  listContent: {
-    paddingBottom: 20,
+    color: colors.gray[700],
+    marginTop: 18,
+    marginBottom: 6,
+    marginLeft: 8,
   },
   countryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[200],
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginBottom: 8,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   flag: {
-    width: 48,
-    height: 32,
-    marginRight: 16,
+    width: 40,
+    height: 28,
     borderRadius: 4,
+    marginRight: 12,
   },
   countryInfo: {
     flex: 1,
   },
   countryName: {
-    fontSize: fontSizes.base,
+    fontSize: 16,
     fontWeight: '500',
     color: colors.gray[900],
-    marginBottom: 4,
-  },
-  countryCode: {
-    fontSize: fontSizes.sm,
-    color: colors.gray[600],
   },
   countryMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginTop: 2,
   },
-  metaDivider: {
-    marginHorizontal: 6,
-    color: colors.gray[400],
-    fontSize: fontSizes.sm,
+  countryCode: {
+    fontSize: 13,
+    color: colors.gray[500],
+    marginRight: 8,
+  },
+  listContent: {
+    paddingBottom: 24,
   },
   configBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
     backgroundColor: colors.success.light,

@@ -8,6 +8,7 @@ import {
   AdminLevelsScreen,
   AdminUnitEditorScreen,
   VersionHistoryScreen,
+  AdminDashboardScreen,
 } from '../screens';
 import CountryConfigScreen from '../screens/CountryConfigScreen';
 
@@ -19,6 +20,7 @@ export type RootStackParamList = {
   AdminLevels: { country?: any };
   AdminUnitEditor: { unit?: any };
   VersionHistory: { unit?: any };
+  AdminDashboard: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -40,6 +42,7 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminLevels" component={AdminLevelsScreen} />
         <Stack.Screen name="AdminUnitEditor" component={AdminUnitEditorScreen} />
         <Stack.Screen name="VersionHistory" component={VersionHistoryScreen} />
+        <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
