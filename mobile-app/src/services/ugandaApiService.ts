@@ -30,5 +30,13 @@ export const ugandaApiService = {
       levels,
     });
     return res.data;
+  },
+
+  async registerHierarchy(hierarchy: {
+    district: string;
+    levels: { level: string; items: string[] }[];
+  }) {
+    const res = await axios.post(`${API_BASE}/hierarchy`, hierarchy);
+    return res.data;
   }
 };

@@ -24,17 +24,20 @@ const LEVEL_LABELS = [
 export default function AdminDashboardScreen() {
   const [districtName, setDistrictName] = useState('');
   const [numLevels, setNumLevels] = useState(4);
-  const [levelNames, setLevelNames] = useState([
-    'District',
-    'Constituency',
-    'Subcounty/Division',
-    'Parish/Ward',
-    'Village/Cell',
-  ]);
+  const [levelNames, setLevelNames] = useState(LEVEL_LABELS);
+  const [step, setStep] = useState(0); // 0: district, 1+: levels
+  const [registeredDistrict, setRegisteredDistrict] = useState(null);
+  const [entries, setEntries] = useState([[], [], [], [], []]); // store names for each level
+  const [inputValue, setInputValue] = useState('');
 
   const handleNumLevelsChange = (value) => {
     setNumLevels(value);
     setLevelNames(LEVEL_LABELS.slice(0, value));
+    setEntries([[], [], [], [], []]);
+    setStep(0);
+    setRegisteredDistrict(null);
+    setDistrictName('');
+    setInputValue('');
   };
 
   const handleRegisterDistrict = async () => {
@@ -43,10 +46,48 @@ export default function AdminDashboardScreen() {
         districtName,
         levelNames.slice(0, numLevels)
       );
+      setRegisteredDistrict(result);
+      setStep(1);
+      setInputValue('');
       globalThis.alert(`District registered: ${result.name}`);
-      setDistrictName('');
     } catch (error) {
       globalThis.alert('Error registering district.');
+    }
+  };
+
+  const handleAddEntry = () => {
+    if (!inputValue.trim()) return;
+    const newEntries = [...entries];
+    newEntries[step - 1] = [...newEntries[step - 1], inputValue.trim()];
+    setEntries(newEntries);
+    setInputValue('');
+  };
+
+  const handleNextLevel = () => {
+    if (step < numLevels) {
+      setStep(step + 1);
+      setInputValue('');
+    }
+  };
+
+  const handleSubmitAll = async () => {
+    try {
+      // Example: send all entries to backend (implement actual API calls as needed)
+      await ugandaApiService.registerHierarchy({
+        district: registeredDistrict?.name,
+        levels: levelNames.slice(1, numLevels).map((level, idx) => ({
+          level,
+          items: entries[idx],
+        })),
+      });
+      globalThis.alert('Hierarchy registered successfully!');
+      setStep(0);
+      setRegisteredDistrict(null);
+      setEntries([[], [], [], [], []]);
+      setDistrictName('');
+      setInputValue('');
+    } catch (error) {
+      globalThis.alert('Error registering hierarchy.');
     }
   };
 
@@ -54,48 +95,92 @@ export default function AdminDashboardScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Admin Dashboard</Text>
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Register New District</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="District Name"
-          value={districtName}
-          onChangeText={setDistrictName}
-        />
-        <Text style={styles.label}>Number of Levels</Text>
-        <View style={styles.pickerRow}>
-          {[4, 5].map((level) => (
-            <TouchableOpacity
-              key={level}
-              style={[
-                styles.levelButton,
-                numLevels === level && styles.levelButtonSelected,
-              ]}
-              onPress={() => handleNumLevelsChange(level)}
-            >
-              <Text
-                style={[
-                  styles.levelButtonText,
-                  numLevels === level && styles.levelButtonTextSelected,
-                ]}
-              >
-                {level}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={styles.levelList}>
-          {levelNames.slice(0, numLevels).map((label, idx) => (
-            <View key={idx} style={styles.levelRow}>
-              <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
-              <Text style={styles.levelLabel}>{`Level ${idx + 1}: ${label}`}</Text>
+        {step === 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Register New District</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="District Name"
+              value={districtName}
+              onChangeText={setDistrictName}
+            />
+            <Text style={styles.label}>Number of Levels</Text>
+            <View style={styles.pickerRow}>
+              {[4, 5].map((level) => (
+                <TouchableOpacity
+                  key={level}
+                  style={[
+                    styles.levelButton,
+                    numLevels === level && styles.levelButtonSelected,
+                  ]}
+                  onPress={() => handleNumLevelsChange(level)}
+                >
+                  <Text
+                    style={[
+                      styles.levelButtonText,
+                      numLevels === level && styles.levelButtonTextSelected,
+                    ]}
+                  >
+                    {level}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          ))}
-        </View>
-        <TouchableOpacity style={styles.registerButton} onPress={handleRegisterDistrict}>
-          <Text style={styles.registerButtonText}>Register District</Text>
-        </TouchableOpacity>
+            <View style={styles.levelList}>
+              {levelNames.slice(0, numLevels).map((label, idx) => (
+                <View key={idx} style={styles.levelRow}>
+                  <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
+                  <Text style={styles.levelLabel}>{`Level ${idx + 1}: ${label}`}</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.registerButton} onPress={handleRegisterDistrict}>
+              <Text style={styles.registerButtonText}>Register District</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        {step > 0 && step <= numLevels && (
+          <>
+            <Text style={styles.sectionTitle}>{`Add ${levelNames[step]}s to ${registeredDistrict?.name}`}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={`Enter ${levelNames[step]} name`}
+              value={inputValue}
+              onChangeText={setInputValue}
+            />
+            <TouchableOpacity style={styles.registerButton} onPress={handleAddEntry}>
+              <Text style={styles.registerButtonText}>{`Add ${levelNames[step]}`}</Text>
+            </TouchableOpacity>
+            <View style={styles.levelList}>
+              {entries[step - 1].map((item, idx) => (
+                <View key={idx} style={styles.levelRow}>
+                  <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
+                  <Text style={styles.levelLabel}>{item}</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.registerButton} onPress={handleNextLevel}>
+              <Text style={styles.registerButtonText}>{step < numLevels ? `Next: ${levelNames[step + 1]}` : 'Review & Submit'}</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        {step > numLevels && (
+          <>
+            <Text style={styles.sectionTitle}>Review & Submit Hierarchy</Text>
+            {levelNames.slice(1, numLevels).map((level, idx) => (
+              <View key={level} style={styles.levelList}>
+                <Text style={styles.label}>{level}s:</Text>
+                {entries[idx].map((item, i) => (
+                  <Text key={i} style={styles.levelLabel}>{item}</Text>
+                ))}
+              </View>
+            ))}
+            <TouchableOpacity style={styles.registerButton} onPress={handleSubmitAll}>
+              <Text style={styles.registerButtonText}>Submit All</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
-      {/* Add more admin features here */}
     </ScrollView>
   );
 }
