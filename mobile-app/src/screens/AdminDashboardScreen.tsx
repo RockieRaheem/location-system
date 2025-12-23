@@ -8,7 +8,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, fontSizes } from '../theme';
+import { ugandaApiService } from '../services/ugandaApiService';
+
+
+import { colors } from '../theme';
 
 const LEVEL_LABELS = [
   'District',
@@ -34,12 +37,17 @@ export default function AdminDashboardScreen() {
     setLevelNames(LEVEL_LABELS.slice(0, value));
   };
 
-  const handleRegisterDistrict = () => {
-    // TODO: Save district with selected levels
-    globalThis.alert(
-      `Registered ${districtName} with ${numLevels} levels: ` +
-        levelNames.slice(0, numLevels).join(', ')
-    );
+  const handleRegisterDistrict = async () => {
+    try {
+      const result = await ugandaApiService.registerDistrict(
+        districtName,
+        levelNames.slice(0, numLevels)
+      );
+      globalThis.alert(`District registered: ${result.name}`);
+      setDistrictName('');
+    } catch (error) {
+      globalThis.alert('Error registering district.');
+    }
   };
 
   return (

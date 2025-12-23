@@ -22,5 +22,13 @@ export const ugandaApiService = {
   async getVillages(district: string, constituency: string, subdivision: string, parish: string) {
     const res = await axios.get(`${API_BASE}/districts/${encodeURIComponent(district)}/constituencies/${encodeURIComponent(constituency)}/subdivisions/${encodeURIComponent(subdivision)}/parishes/${encodeURIComponent(parish)}/villages`);
     return res.data;
+  },
+
+  async registerDistrict(districtName: string, levels: string[]) {
+    const res = await axios.post(`${API_BASE}/districts`, {
+      name: districtName,
+      levels,
+    });
+    return res.data;
   }
 };
