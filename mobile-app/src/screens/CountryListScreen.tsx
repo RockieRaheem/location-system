@@ -17,6 +17,81 @@ interface CountryListScreenProps {
 }
   // Removed stray closing brace
 
+export default function CountryListScreen({ navigation }: CountryListScreenProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const sections = useMemo(() => {
+    const filteredCountries = COUNTRIES.filter((country) =>
+      country.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return CONTINENTS.map((continent) => ({
+      continent,
+      data: filteredCountries.filter((country) => country.continent === continent),
+    })).filter((section) => section.data.length > 0);
+  }, [searchQuery]);
+
+  const handleAdminDashboard = () => {
+    navigation.navigate('AdminDashboard');
+  };
+
+  const renderCountryItem = ({ item }: { item: Country }) => (
+    <TouchableOpacity style={styles.countryItem}>
+      <Image source={{ uri: item.flagUrl }} style={styles.flag} />
+      <View style={styles.countryInfo}>
+        <Text style={styles.countryName}>{item.name}</Text>
+        <View style={styles.countryMeta}>
+          <Text style={styles.countryCode}>{item.code}</Text>
+          {item.phoneCode && (
+            <Text style={styles.countryCode}>{item.phoneCode}</Text>
+          )}
+        </View>
+      </View>
+      {item.isConfigured ? (
+        <View style={styles.configBadge}>
+          <MaterialIcons name="check-circle" size={14} color={colors.success.DEFAULT} />
+          <Text style={styles.configText}>Configured</Text>
+        </View>
+      ) : (
+        <View style={[styles.configBadge, styles.notConfiguredBadge]}>
+          <MaterialIcons name="settings" size={14} color={colors.gray[600]} />
+          <Text style={[styles.configText, styles.notConfiguredText]}>Setup Required</Text>
+        </View>
+      )}
+      <MaterialIcons name="chevron-right" size={24} color={colors.gray[500]} />
+    </TouchableOpacity>
+  );
+
+  const renderSectionHeader = ({ section }: { section: { continent: string } }) => (
+    <Text style={styles.sectionHeader}>{section.continent}</Text>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Country List</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search countries..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <TouchableOpacity style={styles.adminButton} onPress={handleAdminDashboard}>
+          <MaterialIcons name="admin-panel-settings" size={22} color={colors.primary} />
+          <Text style={styles.adminButtonText}>Admin Dashboard</Text>
+        </TouchableOpacity>
+      </View>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderCountryItem}
+        renderSectionHeader={renderSectionHeader}
+        contentContainerStyle={styles.listContent}
+        {...getScrollbarProps()}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -4,3 +4,4 @@ export { default as LocationSearchScreen } from './LocationSearchScreen';
 export { default as AdminLevelsScreen } from './AdminLevelsScreen';
 export { default as AdminUnitEditorScreen } from './AdminUnitEditorScreen';
 export { default as VersionHistoryScreen } from './VersionHistoryScreen';
+export { default as AdminDashboardScreen } from './AdminDashboardScreen';
