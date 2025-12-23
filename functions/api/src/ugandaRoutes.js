@@ -25,7 +25,7 @@ router.post('/districts', async (req, res) => {
     const db = admin.firestore();
     const { name } = req.body;
     await db.collection('uganda_districts').doc(name).set({ constituencies: {} });
-    res.status(201).json({ message: 'District created' });
+    res.status(201).json({ name });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

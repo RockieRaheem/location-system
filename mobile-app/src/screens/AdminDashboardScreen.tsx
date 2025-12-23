@@ -22,164 +22,116 @@ const LEVEL_LABELS = [
 ];
 
 export default function AdminDashboardScreen() {
-  const [districtName, setDistrictName] = useState('');
-  const [numLevels, setNumLevels] = useState(4);
-  const [levelNames, setLevelNames] = useState(LEVEL_LABELS);
-  const [step, setStep] = useState(0); // 0: district, 1+: levels
-  const [registeredDistrict, setRegisteredDistrict] = useState(null);
-  const [entries, setEntries] = useState([[], [], [], [], []]); // store names for each level
-  const [inputValue, setInputValue] = useState('');
+  const [rows, setRows] = useState([
+    { district: '', constituency: '', subcounty: '', parish: '', village: '' },
+  ]);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleNumLevelsChange = (value) => {
-    setNumLevels(value);
-    setLevelNames(LEVEL_LABELS.slice(0, value));
-    setEntries([[], [], [], [], []]);
-    setStep(0);
-    setRegisteredDistrict(null);
-    setDistrictName('');
-    setInputValue('');
+  const handleInputChange = (idx, field, value) => {
+    const newRows = [...rows];
+    newRows[idx][field] = value;
+    setRows(newRows);
   };
 
-  const handleRegisterDistrict = async () => {
+  const handleAddRow = () => {
+    setRows([
+      ...rows,
+      { district: '', constituency: '', subcounty: '', parish: '', village: '' },
+    ]);
+  };
+
+  const handleRemoveRow = (idx) => {
+    if (rows.length === 1) return;
+    setRows(rows.filter((_, i) => i !== idx));
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
     try {
-      const result = await ugandaApiService.registerDistrict(
-        districtName,
-        levelNames.slice(0, numLevels)
-      );
-      setRegisteredDistrict(result);
-      setStep(1);
-      setInputValue('');
-      globalThis.alert(`District registered: ${result.name}`);
+      for (const row of rows) {
+        // Register district if not already present
+        if (row.district) {
+          await ugandaApiService.registerDistrict(row.district, LEVEL_LABELS);
+        }
+        // Register hierarchy for this row
+        await ugandaApiService.registerHierarchy({
+          district: row.district,
+          levels: [
+            { level: 'Constituency', items: [row.constituency] },
+            { level: 'Subcounty/Division', items: [row.subcounty] },
+            { level: 'Parish/Ward', items: [row.parish] },
+            { level: 'Village/Cell', items: [row.village] },
+          ],
+        });
+      }
+      globalThis.alert('All rows submitted successfully!');
+      setRows([
+        { district: '', constituency: '', subcounty: '', parish: '', village: '' },
+      ]);
     } catch (error) {
-      globalThis.alert('Error registering district.');
+      globalThis.alert('Error submitting rows.');
     }
-  };
-
-  const handleAddEntry = () => {
-    if (!inputValue.trim()) return;
-    const newEntries = [...entries];
-    newEntries[step - 1] = [...newEntries[step - 1], inputValue.trim()];
-    setEntries(newEntries);
-    setInputValue('');
-  };
-
-  const handleNextLevel = () => {
-    if (step < numLevels) {
-      setStep(step + 1);
-      setInputValue('');
-    }
-  };
-
-  const handleSubmitAll = async () => {
-    try {
-      // Example: send all entries to backend (implement actual API calls as needed)
-      await ugandaApiService.registerHierarchy({
-        district: registeredDistrict?.name,
-        levels: levelNames.slice(1, numLevels).map((level, idx) => ({
-          level,
-          items: entries[idx],
-        })),
-      });
-      globalThis.alert('Hierarchy registered successfully!');
-      setStep(0);
-      setRegisteredDistrict(null);
-      setEntries([[], [], [], [], []]);
-      setDistrictName('');
-      setInputValue('');
-    } catch (error) {
-      globalThis.alert('Error registering hierarchy.');
-    }
+    setSubmitting(false);
   };
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Admin Dashboard</Text>
-      <View style={styles.card}>
-        {step === 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Register New District</Text>
+      <View style={styles.tableCard}>
+        <View style={styles.tableHeader}>
+          {LEVEL_LABELS.map((label) => (
+            <Text key={label} style={styles.tableHeaderCell}>{label}</Text>
+          ))}
+          <Text style={styles.tableHeaderCell}></Text>
+        </View>
+        {rows.map((row, idx) => (
+          <View key={idx} style={styles.tableRow}>
             <TextInput
-              style={styles.input}
-              placeholder="District Name"
-              value={districtName}
-              onChangeText={setDistrictName}
+              style={styles.tableCell}
+              placeholder="District"
+              value={row.district}
+              onChangeText={(text) => handleInputChange(idx, 'district', text)}
             />
-            <Text style={styles.label}>Number of Levels</Text>
-            <View style={styles.pickerRow}>
-              {[4, 5].map((level) => (
-                <TouchableOpacity
-                  key={level}
-                  style={[
-                    styles.levelButton,
-                    numLevels === level && styles.levelButtonSelected,
-                  ]}
-                  onPress={() => handleNumLevelsChange(level)}
-                >
-                  <Text
-                    style={[
-                      styles.levelButtonText,
-                      numLevels === level && styles.levelButtonTextSelected,
-                    ]}
-                  >
-                    {level}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={styles.levelList}>
-              {levelNames.slice(0, numLevels).map((label, idx) => (
-                <View key={idx} style={styles.levelRow}>
-                  <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
-                  <Text style={styles.levelLabel}>{`Level ${idx + 1}: ${label}`}</Text>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity style={styles.registerButton} onPress={handleRegisterDistrict}>
-              <Text style={styles.registerButtonText}>Register District</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {step > 0 && step <= numLevels && (
-          <>
-            <Text style={styles.sectionTitle}>{`Add ${levelNames[step]}s to ${registeredDistrict?.name}`}</Text>
             <TextInput
-              style={styles.input}
-              placeholder={`Enter ${levelNames[step]} name`}
-              value={inputValue}
-              onChangeText={setInputValue}
+              style={styles.tableCell}
+              placeholder="Constituency"
+              value={row.constituency}
+              onChangeText={(text) => handleInputChange(idx, 'constituency', text)}
             />
-            <TouchableOpacity style={styles.registerButton} onPress={handleAddEntry}>
-              <Text style={styles.registerButtonText}>{`Add ${levelNames[step]}`}</Text>
+            <TextInput
+              style={styles.tableCell}
+              placeholder="Subcounty/Division"
+              value={row.subcounty}
+              onChangeText={(text) => handleInputChange(idx, 'subcounty', text)}
+            />
+            <TextInput
+              style={styles.tableCell}
+              placeholder="Parish/Ward"
+              value={row.parish}
+              onChangeText={(text) => handleInputChange(idx, 'parish', text)}
+            />
+            <TextInput
+              style={styles.tableCell}
+              placeholder="Village/Cell"
+              value={row.village}
+              onChangeText={(text) => handleInputChange(idx, 'village', text)}
+            />
+            <TouchableOpacity onPress={() => handleRemoveRow(idx)} style={styles.removeButton}>
+              <MaterialIcons name="delete" size={20} color={colors.error || 'red'} />
             </TouchableOpacity>
-            <View style={styles.levelList}>
-              {entries[step - 1].map((item, idx) => (
-                <View key={idx} style={styles.levelRow}>
-                  <MaterialIcons name="chevron-right" size={20} color={colors.primary} />
-                  <Text style={styles.levelLabel}>{item}</Text>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity style={styles.registerButton} onPress={handleNextLevel}>
-              <Text style={styles.registerButtonText}>{step < numLevels ? `Next: ${levelNames[step + 1]}` : 'Review & Submit'}</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {step > numLevels && (
-          <>
-            <Text style={styles.sectionTitle}>Review & Submit Hierarchy</Text>
-            {levelNames.slice(1, numLevels).map((level, idx) => (
-              <View key={level} style={styles.levelList}>
-                <Text style={styles.label}>{level}s:</Text>
-                {entries[idx].map((item, i) => (
-                  <Text key={i} style={styles.levelLabel}>{item}</Text>
-                ))}
-              </View>
-            ))}
-            <TouchableOpacity style={styles.registerButton} onPress={handleSubmitAll}>
-              <Text style={styles.registerButtonText}>Submit All</Text>
-            </TouchableOpacity>
-          </>
-        )}
+          </View>
+        ))}
+        <TouchableOpacity style={styles.addRowButton} onPress={handleAddRow}>
+          <MaterialIcons name="add" size={20} color={colors.primary} />
+          <Text style={styles.addRowText}>Add Row</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.registerButton, submitting && { opacity: 0.6 }]}
+          onPress={handleSubmit}
+          disabled={submitting}
+        >
+          <Text style={styles.registerButtonText}>{submitting ? 'Submitting...' : 'Submit All'}</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -198,72 +150,60 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     alignSelf: 'center',
   },
-  card: {
+  tableCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    padding: 16,
     marginBottom: 32,
+    // Web-friendly shadow
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: colors.gray[800],
-  },
-  input: {
-    borderWidth: 1,
+  tableHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
     borderColor: colors.gray[300],
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#fafbfc',
-  },
-  label: {
-    fontSize: 16,
-    color: colors.gray[700],
     marginBottom: 8,
   },
-  pickerRow: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  levelButton: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginRight: 12,
-    backgroundColor: '#fff',
-  },
-  levelButtonSelected: {
-    backgroundColor: colors.primary,
-  },
-  levelButtonText: {
-    color: colors.primary,
+  tableHeaderCell: {
+    flex: 1,
     fontWeight: 'bold',
     fontSize: 16,
+    color: colors.gray[800],
+    paddingVertical: 8,
+    textAlign: 'center',
   },
-  levelButtonTextSelected: {
-    color: '#fff',
-  },
-  levelList: {
-    marginBottom: 24,
-  },
-  levelRow: {
+  tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
-  levelLabel: {
+  tableCell: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 15,
+    marginHorizontal: 2,
+    backgroundColor: '#fafbfc',
+    textAlign: 'center',
+  },
+  removeButton: {
+    marginLeft: 4,
+    padding: 4,
+  },
+  addRowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  addRowText: {
+    color: colors.primary,
+    fontWeight: 'bold',
+    marginLeft: 4,
     fontSize: 16,
-    color: colors.gray[800],
-    marginLeft: 8,
   },
   registerButton: {
     backgroundColor: colors.primary,
