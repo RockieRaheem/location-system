@@ -10,8 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, fontSizes } from '../theme';
-import { ugandaApiService } from '../services/ugandaApiService';
-import { kenyaLocationService } from '../services/kenyaLocationService';
+// import { ugandaApiService } from '../services/ugandaApiService';
 import { StyledFlatList } from '../../components/StyledFlatList';
 
 interface AdminUnit {
@@ -31,39 +30,20 @@ interface AdminLevelsScreenProps {
 
 export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScreenProps) {
   const country = route.params?.country || { name: 'Uganda', code: 'UGA' };
+  // Uganda hierarchy data removed
   const [adminUnits, setAdminUnits] = useState<AdminUnit[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
 
-  useEffect(() => {
-    if (country.name === 'Kenya') {
-      loadKenyaCounties();
-    } else {
-      loadUgandaDistricts();
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (country.name === 'Kenya') {
+  //     loadKenyaCounties();
+  //   } else {
+  //     loadUgandaDistricts();
+  //   }
+  // }, []);
 
-  // Uganda (API)
-  const loadUgandaDistricts = async () => {
-    try {
-      setLoading(true);
-      const districts = await ugandaApiService.getDistricts();
-      const units: AdminUnit[] = districts.map((district: any, index: number) => ({
-        id: `district-${index}`,
-        name: district.id,
-        type: 'District',
-        icon: 'location-city',
-        level: 0,
-        expanded: false,
-        children: [],
-      }));
-      setAdminUnits(units);
-    } catch (error) {
-      console.error('Error loading districts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Uganda hierarchy data and API calls removed
 
   // Kenya
   const loadKenyaCounties = async () => {
@@ -87,43 +67,9 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     }
   };
 
-  // Uganda constituencies
-  const loadConstituencies = async (district: string, districtId: string) => {
-    try {
-      const constituencies = await ugandaApiService.getConstituencies(district);
-      return Object.keys(constituencies).map((constituency, idx) => ({
-        id: `${districtId}-constituency-${idx}`,
-        name: constituency,
-        type: 'Constituency',
-        icon: 'account-balance',
-        level: 1,
-        expanded: false,
-        children: [],
-      }));
-    } catch (error) {
-      console.error('Error loading constituencies:', error);
-    }
-    return [];
-  };
+  // Uganda hierarchy data and API calls removed
 
-  // Uganda subdivisions
-  const loadSubdivisions = async (district: string, constituency: string, constituencyId: string) => {
-    try {
-      const subdivisions = await ugandaApiService.getSubdivisions(district, constituency);
-      return Object.keys(subdivisions).map((subdivision, idx) => ({
-        id: `${constituencyId}-subdivision-${idx}`,
-        name: subdivision,
-        type: 'Subdivision',
-        icon: 'domain',
-        level: 2,
-        expanded: false,
-        children: [],
-      }));
-    } catch (error) {
-      console.error('Error loading subdivisions:', error);
-    }
-    return [];
-  };
+  // Uganda hierarchy data and API calls removed
 
   // Kenya constituencies
   const loadKenyaConstituencies = async (countyName: string, countyId: string) => {
@@ -145,24 +91,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
   };
 
 
-  // Uganda parishes
-  const loadParishes = async (district: string, constituency: string, subdivision: string, subdivisionId: string) => {
-    try {
-      const parishes = await ugandaApiService.getParishes(district, constituency, subdivision);
-      return Object.keys(parishes).map((parish, idx) => ({
-        id: `${subdivisionId}-parish-${idx}`,
-        name: parish,
-        type: 'Parish',
-        icon: 'place',
-        level: 3,
-        expanded: false,
-        children: [],
-      }));
-    } catch (error) {
-      console.error('Error loading parishes:', error);
-    }
-    return [];
-  };
+  // Uganda hierarchy data and API calls removed
 
   // Kenya wards
   const loadKenyaWards = async (countyName: string, constituencyName: string, constituencyId: string) => {
@@ -183,23 +112,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
     return [];
   };
 
-  // Uganda villages
-  const loadVillages = async (district: string, constituency: string, subdivision: string, parish: string, parishId: string) => {
-    try {
-      const villages = await ugandaApiService.getVillages(district, constituency, subdivision, parish);
-      return villages.map((village: string, idx: number) => ({
-        id: `${parishId}-village-${idx}`,
-        name: village,
-        type: 'Village',
-        icon: 'home',
-        level: 4,
-        children: [],
-      }));
-    } catch (error) {
-      console.error('Error loading villages:', error);
-    }
-    return [];
-  };
+  // Uganda hierarchy data and API calls removed
 
   const toggleExpand = async (id: string, unit: AdminUnit) => {
     // Load children if not already loaded
@@ -442,7 +355,7 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
         </TouchableOpacity>
       </View>
 
-      {/* Country Info Card */}
+      {/* Uganda hierarchy data removed: nothing is rendered for admin units */}
       <View style={styles.countryCard}>
         <Image
           source={{ uri: 'https://flagcdn.com/w80/ug.png' }}
@@ -453,20 +366,6 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
           <Text style={styles.countryCode}>{country.code}</Text>
         </View>
       </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading Uganda districts...</Text>
-        </View>
-      ) : (
-        <StyledFlatList
-          data={adminUnits}
-          renderItem={({ item }) => renderUnit(item)}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
     </SafeAreaView>
   );
 }
