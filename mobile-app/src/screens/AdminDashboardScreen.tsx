@@ -1,401 +1,238 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-} from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { ugandaApiService } from '../services/ugandaApiService';
 import { colors } from '../theme';
+import { ugandaApiService } from '../services/ugandaApiService';
 
-const LEVEL_LABELS = ['District', 'County', 'Subcounty', 'Parish', 'Village'];
+// --- Data Structures ---
+// These match the nested structure for easier state management.
+interface Village { id: string; name: string; }
+interface Parish { id: string; name: string; villages: Village[]; }
+interface Subcounty { id: string; name: string; parishes: Parish[]; }
+interface County { id: string; name: string; subcounties: Subcounty[]; }
+interface District { id: string; name: string; counties: County[]; }
 
-interface Village {
-  name: string;
-}
-
-interface Parish {
-  name: string;
-  villages: Village[];
-}
-
-interface Subcounty {
-  name: string;
-  parishes: Parish[];
-}
-
-interface County {
-  name: string;
-  subcounties: Subcounty[];
-}
-
-interface District {
-  name: string;
-  counties: County[];
-}
-
+// This represents a single, flattened row for display.
 interface TableRow {
+  uid: string; // Unique ID for FlatList key
   district: string;
   county: string;
   subcounty: string;
   parish: string;
   village: string;
-  dIdx: number;
-  cIdx: number;
-  sIdx: number;
-  pIdx: number;
-  vIdx: number;
 }
 
-const AdminDashboardScreen = () => {
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+// --- Mock Data (replace with API call) ---
+const MOCK_DATA: District[] = [
+  {
+    id: 'd1', name: 'Apac', counties: [
+      {
+        id: 'c1', name: 'Kwania County', subcounties: [
+          {
+            id: 's1', name: 'Aduku', parishes: [
+              { id: 'p1', name: 'Ongoceng', villages: [{ id: 'v1', name: 'Adyeda' }, { id: 'v2', name: 'Anywal' }, { id: 'v3', name: 'Apor-Wegi ‘A’' }] },
+              { id: 'p2', name: 'Abalokweri', villages: [{ id: 'v4', name: 'Abeigbuti' }, { id: 'v5', name: 'Abononyeko' }] },
+            ]
+          },
+          {
+            id: 's2', name: 'Alira', parishes: [
+                { id: 'p3', name: 'Akot ‘A’', villages: [{ id: 'v6', name: 'Akot' }] },
+                { id: 'p4', name: 'Akot ‘B’', villages: [{ id: 'v7', name: 'Akwodong' }] },
+            ]
+          }
+        ]
+      }
+    ]
+  }
+];
 
-  // Handler functions
-  const handleAddDistrict = () => {
-    setDistricts([...districts, { name: '', counties: [] }]);
-  };
-  const handleAddCounty = (dIdx: number) => {
-    const newDistricts = [...districts];
-    newDistricts[dIdx].counties.push({ name: '', subcounties: [] });
-    setDistricts(newDistricts);
-  };
-  const handleAddSubcounty = (dIdx: number, cIdx: number) => {
-    const newDistricts = [...districts];
-    newDistricts[dIdx].counties[cIdx].subcounties.push({ name: '', parishes: [] });
-    setDistricts(newDistricts);
-  };
-  const handleAddParish = (dIdx: number, cIdx: number, sIdx: number) => {
-    const newDistricts = [...districts];
-    newDistricts[dIdx].counties[cIdx].subcounties[sIdx].parishes.push({ name: '', villages: [] });
-    setDistricts(newDistricts);
-  };
-  const handleAddVillage = (dIdx: number, cIdx: number, sIdx: number, pIdx: number) => {
-    const newDistricts = [...districts];
-    newDistricts[dIdx].counties[cIdx].subcounties[sIdx].parishes[pIdx].villages.push({ name: '' });
-    setDistricts(newDistricts);
-  };
-  const handleEdit = (
-    level: string,
-    value: string,
-    dIdx: number,
-    cIdx?: number,
-    sIdx?: number,
-    pIdx?: number,
-    vIdx?: number
-  ) => {
-    const newDistricts = [...districts];
-    if (level === 'district') newDistricts[dIdx].name = value;
-    if (level === 'county' && cIdx !== undefined) newDistricts[dIdx].counties[cIdx].name = value;
-    if (level === 'subcounty' && cIdx !== undefined && sIdx !== undefined) newDistricts[dIdx].counties[cIdx].subcounties[sIdx].name = value;
-    if (level === 'parish' && cIdx !== undefined && sIdx !== undefined && pIdx !== undefined) newDistricts[dIdx].counties[cIdx].subcounties[sIdx].parishes[pIdx].name = value;
-    if (level === 'village' && cIdx !== undefined && sIdx !== undefined && pIdx !== undefined && vIdx !== undefined) newDistricts[dIdx].counties[cIdx].subcounties[sIdx].parishes[pIdx].villages[vIdx].name = value;
-    setDistricts(newDistricts);
-  };
-  const handleRemove = (
-    level: string,
-    dIdx: number,
-    cIdx?: number,
-    sIdx?: number,
-    pIdx?: number,
-    vIdx?: number
-  ) => {
-    const newDistricts = [...districts];
-    if (level === 'district') newDistricts.splice(dIdx, 1);
-    if (level === 'county' && cIdx !== undefined) newDistricts[dIdx].counties.splice(cIdx, 1);
-    if (level === 'subcounty' && cIdx !== undefined && sIdx !== undefined) newDistricts[dIdx].counties[cIdx].subcounties.splice(sIdx, 1);
-    if (level === 'parish' && cIdx !== undefined && sIdx !== undefined && pIdx !== undefined) newDistricts[dIdx].counties[cIdx].subcounties[sIdx].parishes.splice(pIdx, 1);
-    if (level === 'village' && cIdx !== undefined && sIdx !== undefined && pIdx !== undefined && vIdx !== undefined) newDistricts[dIdx].counties[cIdx].subcounties[sIdx].parishes[pIdx].villages.splice(vIdx, 1);
-    setDistricts(newDistricts);
-  };
 
-  // Flatten tree for table rendering
-  const flatten = (): TableRow[] => {
-    const rows: TableRow[] = [];
-    districts.forEach((d, dIdx) => {
-      d.counties.forEach((c, cIdx) => {
-        c.subcounties.forEach((s, sIdx) => {
-          s.parishes.forEach((p, pIdx) => {
-            p.villages.forEach((v, vIdx) => {
-              rows.push({
-                district: d.name,
-                county: c.name,
-                subcounty: s.name,
-                parish: p.name,
-                village: v.name,
-                dIdx, cIdx, sIdx, pIdx, vIdx
-              });
+// --- Core Logic: Data Transformation ---
+const flattenHierarchy = (districts: District[]): TableRow[] => {
+  const rows: TableRow[] = [];
+  let lastDistrict = '', lastCounty = '', lastSubcounty = '', lastParish = '';
+
+  districts.forEach(district => {
+    let isFirstDistrictRow = true;
+    district.counties.forEach(county => {
+      let isFirstCountyRow = true;
+      county.subcounties.forEach(subcounty => {
+        let isFirstSubcountyRow = true;
+        subcounty.parishes.forEach(parish => {
+          let isFirstParishRow = true;
+          if (parish.villages.length === 0) {
+            // Handle cases where there might be no villages under a parish
+            rows.push({
+                uid: `${district.id}-${county.id}-${subcounty.id}-${parish.id}-no-village`,
+                district: lastDistrict === district.name ? '' : district.name,
+                county: lastCounty === county.name ? '' : county.name,
+                subcounty: lastSubcounty === subcounty.name ? '' : subcounty.name,
+                parish: lastParish === parish.name ? '' : parish.name,
+                village: ''
             });
-          });
+            lastDistrict = district.name; lastCounty = county.name; lastSubcounty = subcounty.name; lastParish = parish.name;
+          } else {
+            parish.villages.forEach(village => {
+                rows.push({
+                    uid: village.id,
+                    district: isFirstDistrictRow ? district.name : (lastDistrict === district.name ? '' : district.name),
+                    county: isFirstCountyRow ? county.name : (lastCounty === county.name ? '' : county.name),
+                    subcounty: isFirstSubcountyRow ? subcounty.name : (lastSubcounty === subcounty.name ? '' : subcounty.name),
+                    parish: isFirstParishRow ? parish.name : (lastParish === parish.name ? '' : parish.name),
+                    village: village.name
+                });
+                isFirstDistrictRow = false; isFirstCountyRow = false; isFirstSubcountyRow = false; isFirstParishRow = false;
+                lastDistrict = district.name; lastCounty = county.name; lastSubcounty = subcounty.name; lastParish = parish.name;
+            });
+          }
         });
       });
     });
-    return rows;
-  };
-  const tableRows = flatten();
+  });
 
-  // Submit handler
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      for (const d of districts) {
-        if (d.name) {
-          await ugandaApiService.registerDistrict(d.name, LEVEL_LABELS);
-        }
-        for (const c of d.counties) {
-          for (const s of c.subcounties) {
-            for (const p of s.parishes) {
-              await ugandaApiService.registerHierarchy({
-                district: d.name,
-                levels: [
-                  { level: 'Constituency', items: [c.name] },
-                  { level: 'Subcounty/Division', items: [s.name] },
-                  { level: 'Parish/Ward', items: [p.name] },
-                  { level: 'Village/Cell', items: p.villages.map(v => v.name) },
-                ],
-              });
-            }
-          }
-        }
+  return rows;
+};
+
+
+// --- Main Component ---
+const AdminDashboardScreen = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [districts, setDistricts] = useState<District[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // NOTE: The current API doesn't support fetching the entire nested hierarchy.
+        // This is a critical limitation. We are using mock data as a fallback.
+        // To integrate fully, an endpoint like `GET /api/uganda/hierarchy` is needed.
+        // const fetchedData = await ugandaApiService.getFullHierarchy(); // Assuming this exists
+        setDistricts(MOCK_DATA);
+      } catch (e) {
+        console.error(e);
+        setError('Failed to fetch location data.');
+      } finally {
+        setLoading(false);
       }
-      globalThis.alert('All data submitted successfully!');
-      setDistricts([]);
-    } catch (error) {
-      globalThis.alert('Error submitting data.');
-    }
-    setSubmitting(false);
-  };
+    };
+    fetchData();
+  }, []);
 
-  // Component render
-  return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Admin Dashboard</Text>
-      <TouchableOpacity style={styles.addDistrictButton} onPress={handleAddDistrict}>
-        <MaterialIcons name="add" size={22} color={colors.primary} />
-        <Text style={styles.addDistrictText}>Add District</Text>
-      </TouchableOpacity>
-      <View style={styles.tableCard}>
-        <View style={styles.tableHeader}>
-          {LEVEL_LABELS.map((label) => (
-            <Text key={label} style={styles.tableHeaderCell}>{label}</Text>
-          ))}
-        </View>
-        {/* Render hierarchical table, only fill parent columns when value changes */}
-        {(() => {
-          let prev: Partial<TableRow> = {};
-          return tableRows.map((row, idx) => {
-            const showDistrict = row.district !== prev.district;
-            const showCounty = showDistrict || row.county !== prev.county;
-            const showSubcounty = showCounty || row.subcounty !== prev.subcounty;
-            const showParish = showSubcounty || row.parish !== prev.parish;
-            prev = row;
-            return (
-              <View key={idx} style={styles.tableRow}>
-                <View style={styles.tableCellGroup}>
-                  <TextInput
-                    style={styles.tableCell}
-                    placeholder="District"
-                    value={showDistrict ? row.district : ''}
-                    onChangeText={(text) => handleEdit('district', text, row.dIdx)}
-                  />
-                  {showDistrict && (
-                    <TouchableOpacity onPress={handleAddDistrict} style={styles.addChildButton}>
-                      <MaterialIcons name="add" size={18} color={colors.primary} />
-                    </TouchableOpacity>
-                  )}
-                  {showDistrict && (
-                    <TouchableOpacity onPress={() => handleRemove('district', row.dIdx)} style={styles.removeButton}>
-                      <MaterialIcons name="delete" size={20} color={colors.danger.DEFAULT} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View style={styles.tableCellGroup}>
-                  <TextInput
-                    style={styles.tableCell}
-                    placeholder="County"
-                    value={showCounty ? row.county : ''}
-                    onChangeText={(text) => handleEdit('county', text, row.dIdx, row.cIdx)}
-                  />
-                  {showCounty && (
-                    <TouchableOpacity onPress={() => handleAddCounty(row.dIdx)} style={styles.addChildButton}>
-                      <MaterialIcons name="add" size={18} color={colors.primary} />
-                    </TouchableOpacity>
-                  )}
-                  {showCounty && (
-                    <TouchableOpacity onPress={() => handleRemove('county', row.dIdx, row.cIdx)} style={styles.removeButton}>
-                      <MaterialIcons name="delete" size={20} color={colors.danger.DEFAULT} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View style={styles.tableCellGroup}>
-                  <TextInput
-                    style={styles.tableCell}
-                    placeholder="Subcounty / Division"
-                    value={showSubcounty ? row.subcounty : ''}
-                    onChangeText={(text) => handleEdit('subcounty', text, row.dIdx, row.cIdx, row.sIdx)}
-                  />
-                  {showSubcounty && (
-                    <TouchableOpacity onPress={() => handleAddSubcounty(row.dIdx, row.cIdx)} style={styles.addChildButton}>
-                      <MaterialIcons name="add" size={18} color={colors.primary} />
-                    </TouchableOpacity>
-                  )}
-                  {showSubcounty && (
-                    <TouchableOpacity onPress={() => handleRemove('subcounty', row.dIdx, row.cIdx, row.sIdx)} style={styles.removeButton}>
-                      <MaterialIcons name="delete" size={20} color={colors.danger.DEFAULT} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View style={styles.tableCellGroup}>
-                  <TextInput
-                    style={styles.tableCell}
-                    placeholder="Parish / Ward"
-                    value={showParish ? row.parish : ''}
-                    onChangeText={(text) => handleEdit('parish', text, row.dIdx, row.cIdx, row.sIdx, row.pIdx)}
-                  />
-                  {showParish && (
-                    <TouchableOpacity onPress={() => handleAddParish(row.dIdx, row.cIdx, row.sIdx)} style={styles.addChildButton}>
-                      <MaterialIcons name="add" size={18} color={colors.primary} />
-                    </TouchableOpacity>
-                  )}
-                  {showParish && (
-                    <TouchableOpacity onPress={() => handleRemove('parish', row.dIdx, row.cIdx, row.sIdx, row.pIdx)} style={styles.removeButton}>
-                      <MaterialIcons name="delete" size={20} color={colors.danger.DEFAULT} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View style={styles.tableCellGroup}>
-                  <TextInput
-                    style={styles.tableCell}
-                    placeholder="Village / Cell"
-                    value={row.village}
-                    onChangeText={(text) => handleEdit('village', text, row.dIdx, row.cIdx, row.sIdx, row.pIdx, row.vIdx)}
-                  />
-                  <TouchableOpacity onPress={() => handleAddVillage(row.dIdx, row.cIdx, row.sIdx, row.pIdx)} style={styles.addChildButton}>
-                    <MaterialIcons name="add" size={18} color={colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleRemove('village', row.dIdx, row.cIdx, row.sIdx, row.pIdx, row.vIdx)} style={styles.removeButton}>
-                    <MaterialIcons name="delete" size={20} color={colors.danger.DEFAULT} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          });
-        })()}
-        <TouchableOpacity
-          style={[styles.registerButton, submitting && { opacity: 0.6 }]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          <Text style={styles.registerButtonText}>{submitting ? 'Submitting...' : 'Submit All'}</Text>
-        </TouchableOpacity>
+  // Use useMemo to prevent re-calculating the flattened rows on every render
+  const tableRows = useMemo(() => flattenHierarchy(districts), [districts]);
+
+  const renderItem = ({ item }: { item: TableRow }) => (
+    <View style={styles.tableRow}>
+      <Text style={[styles.tableCell, styles.districtCell]}>{item.district}</Text>
+      <Text style={[styles.tableCell, styles.countyCell]}>{item.county}</Text>
+      <Text style={[styles.tableCell, styles.subcountyCell]}>{item.subcounty}</Text>
+      <Text style={[styles.tableCell, styles.parishCell]}>{item.parish}</Text>
+      <Text style={[styles.tableCell, styles.villageCell]}>{item.village}</Text>
+      <View style={styles.actionsCell}>
+          <TouchableOpacity style={styles.actionButton}><MaterialIcons name="edit" size={18} color={colors.primary} /></TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}><MaterialIcons name="delete" size={18} color={colors.danger.DEFAULT} /></TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
+  );
+
+  const TableHeader = () => (
+    <View style={styles.tableHeader}>
+      <Text style={[styles.headerCell, styles.districtCell]}>District</Text>
+      <Text style={[styles.headerCell, styles.countyCell]}>County</Text>
+      <Text style={[styles.headerCell, styles.subcountyCell]}>Subcounty</Text>
+      <Text style={[styles.headerCell, styles.parishCell]}>Parish</Text>
+      <Text style={[styles.headerCell, styles.villageCell]}>Village</Text>
+      <Text style={[styles.headerCell, styles.actionsCell]}>Actions</Text>
+    </View>
+  );
+
+  if (loading) {
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>;
+  }
+
+  if (error) {
+    return <View style={styles.center}><Text style={styles.errorText}>{error}</Text></View>;
+  }
+
+  return (
+    <View style={styles.container}>
+        <View style={styles.header}>
+            <Text style={styles.title}>Admin Dashboard</Text>
+            <Text style={styles.subtitle}>Uganda Administrative Units</Text>
+        </View>
+
+        <View style={styles.card}>
+            <FlatList
+                ListHeaderComponent={TableHeader}
+                data={tableRows}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.uid}
+                contentContainerStyle={styles.listContentContainer}
+                stickyHeaderIndices={[0]}
+            />
+        </View>
+    </View>
   );
 };
 
+
+// --- STYLES ---
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: colors.gray[100], padding: 16 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorText: { color: colors.danger.DEFAULT, fontSize: 16 },
+  header: { marginBottom: 16, alignItems: 'center' },
+  title: { fontSize: 28, fontWeight: 'bold', color: colors.gray[800] },
+  subtitle: { fontSize: 16, color: colors.gray[500], marginTop: 4 },
+  card: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  addDistrictButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignSelf: 'center',
-  },
-  addDistrictText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 8,
-    fontSize: 16,
-  },
-  tableCard: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.white,
     borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 24,
+    ...Platform.select({
+      web: { boxShadow: '0 4px 12px rgba(0,0,0,0.05)' },
+      native: { elevation: 2 },
+    }),
+    overflow: 'hidden',
   },
+  listContentContainer: { paddingBottom: 16 },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-    marginBottom: 4,
+    backgroundColor: colors.gray[50],
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
   },
-  tableHeaderCell: {
-    flex: 1,
-    color: '#fff',
+  headerCell: {
+    fontSize: 12,
     fontWeight: 'bold',
-    fontSize: 14,
-    textAlign: 'center',
+    color: colors.gray[600],
+    textTransform: 'uppercase',
   },
   tableRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingVertical: 6,
-  },
-  tableCellGroup: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
+    borderBottomColor: colors.gray[100],
   },
   tableCell: {
-    flex: 1,
-    backgroundColor: '#f2f2f2',
-    borderRadius: 6,
-    padding: 6,
-    marginHorizontal: 2,
-    fontSize: 13,
-    color: '#333',
+    fontSize: 14,
+    color: colors.gray[800],
   },
-  addChildButton: {
-    marginLeft: 4,
-    backgroundColor: colors.primary,
-    borderRadius: 6,
-    padding: 2,
-  },
-  removeButton: {
-    marginLeft: 4,
-    backgroundColor: colors.danger.DEFAULT,
-    borderRadius: 6,
-    padding: 2,
-  },
-  registerButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 12,
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+  // Column widths
+  districtCell: { flex: 2 },
+  countyCell: { flex: 2.5 },
+  subcountyCell: { flex: 2.5 },
+  parishCell: { flex: 2.5 },
+  villageCell: { flex: 2.5 },
+  actionsCell: { flex: 1.5, flexDirection: 'row', justifyContent: 'flex-end'},
+  actionButton: {
+    padding: 4,
+    marginLeft: 12,
+  }
 });
 
 export default AdminDashboardScreen;
