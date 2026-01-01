@@ -576,6 +576,7 @@ const AdminDashboardScreen = () => {
   const [editMode, setEditMode] = useState<EditMode | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -616,6 +617,19 @@ const AdminDashboardScreen = () => {
     }
     return rows;
   }, [districts]);
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery.trim()) return tableRows;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return tableRows.filter(row => 
+      row.district.toLowerCase().includes(query) ||
+      row.county.toLowerCase().includes(query) ||
+      row.subcounty.toLowerCase().includes(query) ||
+      row.parish.toLowerCase().includes(query) ||
+      row.village.toLowerCase().includes(query)
+    );
+  }, [tableRows, searchQuery]);
 
   const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substr(2, 5)}`;
 
@@ -1113,6 +1127,29 @@ const AdminDashboardScreen = () => {
         </View>
       </View>
 
+      <View style={styles.searchContainer}>
+        <MaterialIcons name="search" size={22} color={colors.gray[400]} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by district, county, subcounty, parish, or village name..."
+          placeholderTextColor={colors.gray[400]}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+            <MaterialIcons name="close" size={20} color={colors.gray[500]} />
+          </TouchableOpacity>
+        )}
+        {searchQuery.length > 0 && (
+          <View style={styles.searchResultCount}>
+            <Text style={styles.searchResultText}>
+              {filteredRows.length} {filteredRows.length === 1 ? 'result' : 'results'}
+            </Text>
+          </View>
+        )}
+      </View>
+
       <View style={styles.tableWrapper}>
         <View style={styles.tableContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={true}>
@@ -1125,15 +1162,23 @@ const AdminDashboardScreen = () => {
                 onAddVillage={() => handleAdd('village')}
               />
               <ScrollView style={styles.tableScrollView}>
-                {tableRows.map((item, index) => (
-                  <TableRowItem
-                    key={item.uid}
-                    item={item}
-                    index={index}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                ))}
+                {filteredRows.length > 0 ? (
+                  filteredRows.map((item, index) => (
+                    <TableRowItem
+                      key={item.uid}
+                      item={item}
+                      index={index}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))
+                ) : (
+                  <View style={styles.noResultsContainer}>
+                    <MaterialIcons name="search-off" size={48} color={colors.gray[300]} />
+                    <Text style={styles.noResultsText}>No results found</Text>
+                    <Text style={styles.noResultsSubtext}>Try a different search term</Text>
+                  </View>
+                )}
               </ScrollView>
             </View>
           </ScrollView>
@@ -1261,6 +1306,70 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: colors.gray[200],
+  },
+
+  // Search Bar
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    marginHorizontal: 24,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.gray[300],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.gray[900],
+    paddingVertical: 4,
+  },
+  clearButton: {
+    padding: 4,
+    marginLeft: 8,
+    marginRight: 8,
+  },
+  searchResultCount: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: colors.primary[50],
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  searchResultText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary[700],
+  },
+
+  // No Results
+  noResultsContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  noResultsText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.gray[600],
+    marginTop: 16,
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: colors.gray[400],
+    marginTop: 8,
   },
 
   tableWrapper: {
