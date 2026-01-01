@@ -219,28 +219,37 @@ const AddEditModal: React.FC<{
     }
   }, [editMode]);
 
+  const showAlert = (message: string) => {
+    if (Platform.OS === 'web') {
+      // @ts-ignore - window is available on web
+      window.alert(message);
+    } else {
+      Alert.alert('Error', message);
+    }
+  };
+
   const handleSave = () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a name');
+      showAlert('Please enter a name');
       return;
     }
 
     // Validate parent selections based on level
     if (editMode?.type === 'add') {
       if (editMode.level === 'county' && !selectedDistrictId) {
-        Alert.alert('Error', 'Please select a district');
+        showAlert('Please select a district');
         return;
       }
       if (editMode.level === 'subcounty' && (!selectedDistrictId || !selectedCountyId)) {
-        Alert.alert('Error', 'Please select both district and county');
+        showAlert('Please select both district and county');
         return;
       }
       if (editMode.level === 'parish' && (!selectedDistrictId || !selectedCountyId || !selectedSubcountyId)) {
-        Alert.alert('Error', 'Please select district, county, and subcounty');
+        showAlert('Please select district, county, and subcounty');
         return;
       }
       if (editMode.level === 'village' && (!selectedDistrictId || !selectedCountyId || !selectedSubcountyId || !selectedParishId)) {
-        Alert.alert('Error', 'Please select district, county, subcounty, and parish');
+        showAlert('Please select district, county, subcounty, and parish');
         return;
       }
     }
