@@ -43,57 +43,33 @@ type EditMode = {
   data?: any;
 };
 
-// --- MOCK DATA ---
-const INITIAL_MOCK_DATA: District[] = [
-  {
-    id: 'd1', name: 'Apac', counties: [
-      {
-        id: 'c1', name: 'Kwania County', subcounties: [
-          {
-            id: 's1', name: 'Aduku', parishes: [
-              { id: 'p1', name: 'Ongoceng', villages: [
-                { id: 'v1', name: 'Adyeda' }, 
-                { id: 'v2', name: 'Anywal' }, 
-                { id: 'v3', name: "Apor-Wegi 'A'" },
-                { id: 'v4', name: "Apor-Wegi 'B'" }
-              ]},
-              { id: 'p2', name: 'Abalokweri', villages: [
-                { id: 'v5', name: 'Abeigbuti' }, 
-                { id: 'v6', name: 'Abononyeko' }
-              ]},
-            ]
-          },
-          {
-            id: 's2', name: 'Alira', parishes: [
-              { id: 'p3', name: "Akot 'A'", villages: [{ id: 'v7', name: 'Akot' }] },
-              { id: 'p4', name: "Akot 'B'", villages: [{ id: 'v8', name: 'Akwodong' }] },
-              { id: 'p5', name: "Bung 'A'", villages: [{ id: 'v9', name: 'Bung' }] },
-              { id: 'p6', name: "Bung 'B'", villages: [{ id: 'v10', name: 'Bung' }] },
-              { id: 'p7', name: "Bung 'C'", villages: [{ id: 'v11', name: 'Bung' }] },
-              { id: 'p8', name: "Bung 'D'", villages: [{ id: 'v12', name: 'Bung' }] },
-            ]
-          }
-        ]
-      },
-      {
-        id: 'c2', name: 'Maruzi County', subcounties: [
-          { id: 's3', name: 'Aboke', parishes: [
-            { id: 'p9', name: 'Abaro', villages: [{ id: 'v13', name: 'Abaro'}] }
-          ]}
-        ]
-      }
-    ]
-  },
-  {
-    id: 'd2', name: 'Lira', counties: [
-      { id: 'c3', name: 'Erute County', subcounties: [
-        { id: 's4', name: 'Agali', parishes: [
-          { id: 'p10', name: 'Agali', villages: [{ id: 'v14', name: 'Banya'}] }
-        ]}
-      ]}
-    ]
+// --- STORAGE KEY ---
+const STORAGE_KEY = 'uganda_admin_districts';
+
+// --- STORAGE HELPERS ---
+const saveToStorage = (data: District[]) => {
+  if (Platform.OS === 'web') {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error('Failed to save to localStorage:', e);
+    }
   }
-];
+};
+
+const loadFromStorage = (): District[] => {
+  if (Platform.OS === 'web') {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to load from localStorage:', e);
+    }
+  }
+  return [];
+};
 
 // --- DATA TRANSFORMATION ---
 const processDataForDisplay = (districts: District[]): TableRow[] => {
@@ -565,17 +541,25 @@ const AdminDashboardScreen = () => {
       try {
         setLoading(true);
         setError(null);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setDistricts(INITIAL_MOCK_DATA);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const storedData = loadFromStorage();
+        setDistricts(storedData);
       } catch (e) {
         console.error(e);
-        setError('Failed to fetch location data.');
+        setError('Failed to load location data.');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
   }, []);
+
+  // Save to storage whenever districts change
+  useEffect(() => {
+    if (!loading) {
+      saveToStorage(districts);
+    }
+  }, [districts, loading]);
 
   const tableRows = useMemo(() => processDataForDisplay(districts), [districts]);
 
@@ -602,23 +586,20 @@ const AdminDashboardScreen = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            setDistricts(prev => {
-              const newDistricts = JSON.parse(JSON.stringify(prev));
+            setDistricts(prevDistricts => {
+              let newDistricts = JSON.parse(JSON.stringify(prevDistricts)) as District[];
               
               if (level === 'district') {
-                const filtered = newDistricts.filter((d: District) => d.id !== data.id);
-                return filtered;
+                newDistricts = newDistricts.filter((d: District) => d.id !== data.id);
               }
-              
-              if (level === 'county') {
-                return newDistricts.map((d: District) => ({
+              else if (level === 'county') {
+                newDistricts = newDistricts.map((d: District) => ({
                   ...d,
                   counties: d.counties.filter((c: County) => c.id !== data.id)
                 }));
               }
-              
-              if (level === 'subcounty') {
-                return newDistricts.map((d: District) => ({
+              else if (level === 'subcounty') {
+                newDistricts = newDistricts.map((d: District) => ({
                   ...d,
                   counties: d.counties.map((c: County) => ({
                     ...c,
@@ -626,9 +607,8 @@ const AdminDashboardScreen = () => {
                   }))
                 }));
               }
-              
-              if (level === 'parish') {
-                return newDistricts.map((d: District) => ({
+              else if (level === 'parish') {
+                newDistricts = newDistricts.map((d: District) => ({
                   ...d,
                   counties: d.counties.map((c: County) => ({
                     ...c,
@@ -639,9 +619,8 @@ const AdminDashboardScreen = () => {
                   }))
                 }));
               }
-              
-              if (level === 'village') {
-                return newDistricts.map((d: District) => ({
+              else if (level === 'village') {
+                newDistricts = newDistricts.map((d: District) => ({
                   ...d,
                   counties: d.counties.map((c: County) => ({
                     ...c,
