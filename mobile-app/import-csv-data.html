@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Uganda CSV Data</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #135bec;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .file-input-wrapper {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            background: #135bec;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #0d4cbd;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .progress {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #16A34A;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            display: none;
+        }
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .success {
+            color: #16A34A;
+            font-weight: 600;
+        }
+        .error {
+            color: #DC2626;
+            font-weight: 600;
+        }
+        .info {
+            color: #135bec;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🇺🇬 Import Uganda Administrative Data</h1>
+        <p class="subtitle">Import ug2010.csv data into the Administrative Dashboard</p>
+
+        <div class="file-input-wrapper">
+            <p>Select the <strong>ug2010.csv</strong> file:</p>
+            <input type="file" id="csvFile" accept=".csv" />
+        </div>
+
+        <button id="importBtn" disabled>Import Data</button>
+
+        <div class="progress" id="progress">
+            <p>Processing CSV data...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('csvFile');
+        const importBtn = document.getElementById('importBtn');
+        const progress = document.getElementById('progress');
+        const progressFill = document.getElementById('progressFill');
+        const logDiv = document.getElementById('log');
+
+        fileInput.addEventListener('change', (e) => {
+            importBtn.disabled = !e.target.files.length;
+        });
+
+        function log(message, type = 'info') {
+            logDiv.style.display = 'block';
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateProgress(percent) {
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = Math.round(percent) + '%';
+        }
+
+        function generateId(prefix) {
+            return `${prefix}${Date.now()}${Math.random().toString(36).substr(2, 5)}`;
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const result = [];
+            let currentRow = [];
+            let inQuotes = false;
+            let currentField = '';
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        currentField += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    currentRow.push(currentField.trim());
+                    currentField = '';
+                } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                    if (char === '\r' && nextChar === '\n') {
+                        i++;
+                    }
+                    if (currentField || currentRow.length) {
+                        currentRow.push(currentField.trim());
+                        if (currentRow.some(field => field.length > 0)) {
+                            result.push(currentRow);
+                        }
+                        currentRow = [];
+                        currentField = '';
+                    }
+                } else {
+                    currentField += char;
+                }
+            }
+
+            if (currentField || currentRow.length) {
+                currentRow.push(currentField.trim());
+                if (currentRow.some(field => field.length > 0)) {
+                    result.push(currentRow);
+                }
+            }
+
+            return result;
+        }
+
+        async function importData() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            importBtn.disabled = true;
+            progress.style.display = 'block';
+            logDiv.innerHTML = '';
+
+            try {
+                log('Reading CSV file...', 'info');
+                const text = await file.text();
+                
+                log('Parsing CSV data...', 'info');
+                const rows = parseCSV(text);
+                
+                log(`Found ${rows.length} rows`, 'info');
+                updateProgress(10);
+
+                // Build hierarchy
+                const districts = [];
+                const districtMap = new Map();
+                
+                let currentDistrict = null;
+                let currentCounty = null;
+                let currentSubcounty = null;
+                let currentParish = null;
+                
+                let processedRows = 0;
+                const totalRows = rows.length;
+
+                for (let i = 1; i < rows.length; i++) { // Skip header
+                    const row = rows[i];
+                    if (row.length < 6) continue;
+
+                    // CSV columns: ["", District, Constituency, Subcounty/Division, Parish/Ward, Village/Cell]
+                    const districtName = row[1]?.trim();
+                    const countyName = row[2]?.trim();
+                    const subcountyName = row[3]?.trim();
+                    const parishName = row[4]?.trim();
+                    const villageName = row[5]?.trim();
+
+                    // Update current context
+                    if (districtName) {
+                        if (!districtMap.has(districtName)) {
+                            currentDistrict = {
+                                id: generateId('d'),
+                                name: districtName,
+                                counties: []
+                            };
+                            districts.push(currentDistrict);
+                            districtMap.set(districtName, currentDistrict);
+                        } else {
+                            currentDistrict = districtMap.get(districtName);
+                        }
+                        currentCounty = null;
+                        currentSubcounty = null;
+                        currentParish = null;
+                    }
+
+                    if (countyName && currentDistrict) {
+                        let county = currentDistrict.counties.find(c => c.name === countyName);
+                        if (!county) {
+                            county = {
+                                id: generateId('c'),
+                                name: countyName,
+                                subcounties: []
+                            };
+                            currentDistrict.counties.push(county);
+                        }
+                        currentCounty = county;
+                        currentSubcounty = null;
+                        currentParish = null;
+                    }
+
+                    if (subcountyName && currentCounty) {
+                        let subcounty = currentCounty.subcounties.find(s => s.name === subcountyName);
+                        if (!subcounty) {
+                            subcounty = {
+                                id: generateId('s'),
+                                name: subcountyName,
+                                parishes: []
+                            };
+                            currentCounty.subcounties.push(subcounty);
+                        }
+                        currentSubcounty = subcounty;
+                        currentParish = null;
+                    }
+
+                    if (parishName && currentSubcounty) {
+                        let parish = currentSubcounty.parishes.find(p => p.name === parishName);
+                        if (!parish) {
+                            parish = {
+                                id: generateId('p'),
+                                name: parishName,
+                                villages: []
+                            };
+                            currentSubcounty.parishes.push(parish);
+                        }
+                        currentParish = parish;
+                    }
+
+                    if (villageName && currentParish) {
+                        // Avoid duplicates
+                        if (!currentParish.villages.find(v => v.name === villageName)) {
+                            currentParish.villages.push({
+                                id: generateId('v'),
+                                name: villageName
+                            });
+                        }
+                    }
+
+                    processedRows++;
+                    if (processedRows % 1000 === 0) {
+                        updateProgress(10 + (processedRows / totalRows) * 80);
+                        log(`Processed ${processedRows}/${totalRows} rows...`, 'info');
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                updateProgress(90);
+                log('Saving to localStorage...', 'info');
+                
+                // Save to localStorage
+                localStorage.setItem('uganda_admin_districts', JSON.stringify(districts));
+                
+                updateProgress(100);
+                
+                // Calculate statistics
+                const totalCounties = districts.reduce((sum, d) => sum + d.counties.length, 0);
+                const totalSubcounties = districts.reduce((sum, d) => 
+                    sum + d.counties.reduce((s, c) => s + c.subcounties.length, 0), 0
+                );
+                const totalParishes = districts.reduce((sum, d) => 
+                    sum + d.counties.reduce((s, c) => 
+                        s + c.subcounties.reduce((s2, sc) => s2 + sc.parishes.length, 0), 0
+                    ), 0
+                );
+                const totalVillages = districts.reduce((sum, d) => 
+                    sum + d.counties.reduce((s, c) => 
+                        s + c.subcounties.reduce((s2, sc) => 
+                            s2 + sc.parishes.reduce((s3, p) => s3 + p.villages.length, 0), 0
+                        ), 0
+                    ), 0
+                );
+
+                log('', 'info');
+                log('✅ IMPORT SUCCESSFUL!', 'success');
+                log('', 'info');
+                log(`📊 Statistics:`, 'info');
+                log(`   Districts: ${districts.length}`, 'info');
+                log(`   Counties: ${totalCounties}`, 'info');
+                log(`   Subcounties: ${totalSubcounties}`, 'info');
+                log(`   Parishes: ${totalParishes}`, 'info');
+                log(`   Villages: ${totalVillages}`, 'info');
+                log('', 'info');
+                log('🎉 Data loaded! You can now open the Admin Dashboard.', 'success');
+                log('The page will reload in 3 seconds...', 'info');
+
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:8081';
+                }, 3000);
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+                importBtn.disabled = false;
+            }
+        }
+
+        importBtn.addEventListener('click', importData);
+    </script>
+</body>
+</html>

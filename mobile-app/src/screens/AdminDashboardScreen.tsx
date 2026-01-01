@@ -575,6 +575,8 @@ const AdminDashboardScreen = () => {
   const [districts, setDistricts] = useState<District[]>([]);
   const [editMode, setEditMode] = useState<EditMode | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -583,6 +585,11 @@ const AdminDashboardScreen = () => {
         setError(null);
         await new Promise(resolve => setTimeout(resolve, 300));
         const storedData = loadFromStorage();
+        console.log('Loaded data from localStorage:', storedData);
+        console.log('Number of districts:', storedData.length);
+        if (storedData.length > 0) {
+          console.log('First district:', storedData[0]);
+        }
         setDistricts(storedData);
       } catch (e) {
         console.error(e);
@@ -601,7 +608,14 @@ const AdminDashboardScreen = () => {
     }
   }, [districts, loading]);
 
-  const tableRows = useMemo(() => processDataForDisplay(districts), [districts]);
+  const tableRows = useMemo(() => {
+    const rows = processDataForDisplay(districts);
+    console.log('Table rows generated:', rows.length);
+    if (rows.length > 0) {
+      console.log('First row:', rows[0]);
+    }
+    return rows;
+  }, [districts]);
 
   const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substr(2, 5)}`;
 
@@ -735,6 +749,141 @@ const AdminDashboardScreen = () => {
           { text: 'Delete', style: 'destructive', onPress: performDelete }
         ]
       );
+    }
+  }, []);
+
+  const handleImportCSV = useCallback(async (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+      
+      const districtsData: District[] = [];
+      const districtMap = new Map();
+      
+      let currentDistrict: District | null = null;
+      let currentCounty: County | null = null;
+      let currentSubcounty: Subcounty | null = null;
+      let currentParish: Parish | null = null;
+      
+      // Skip header row
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Simple CSV parsing (handles quoted fields)
+        const fields: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            fields.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        fields.push(current.trim());
+        
+        if (fields.length < 6) continue;
+        
+        const districtName = fields[1];
+        const countyName = fields[2];
+        const subcountyName = fields[3].replace(/\r?\n/g, ' ').trim();
+        const parishName = fields[4];
+        const villageName = fields[5];
+        
+        // Update context
+        if (districtName) {
+          if (!districtMap.has(districtName)) {
+            currentDistrict = {
+              id: generateId('d'),
+              name: districtName,
+              counties: []
+            };
+            districtsData.push(currentDistrict);
+            districtMap.set(districtName, currentDistrict);
+          } else {
+            currentDistrict = districtMap.get(districtName);
+          }
+          currentCounty = null;
+          currentSubcounty = null;
+          currentParish = null;
+        }
+        
+        if (countyName && currentDistrict) {
+          let county = currentDistrict.counties.find(c => c.name === countyName);
+          if (!county) {
+            county = {
+              id: generateId('c'),
+              name: countyName,
+              subcounties: []
+            };
+            currentDistrict.counties.push(county);
+          }
+          currentCounty = county;
+          currentSubcounty = null;
+          currentParish = null;
+        }
+        
+        if (subcountyName && currentCounty) {
+          let subcounty = currentCounty.subcounties.find(s => s.name === subcountyName);
+          if (!subcounty) {
+            subcounty = {
+              id: generateId('s'),
+              name: subcountyName,
+              parishes: []
+            };
+            currentCounty.subcounties.push(subcounty);
+          }
+          currentSubcounty = subcounty;
+          currentParish = null;
+        }
+        
+        if (parishName && currentSubcounty) {
+          let parish = currentSubcounty.parishes.find(p => p.name === parishName);
+          if (!parish) {
+            parish = {
+              id: generateId('p'),
+              name: parishName,
+              villages: []
+            };
+            currentSubcounty.parishes.push(parish);
+          }
+          currentParish = parish;
+        }
+        
+        if (villageName && currentParish) {
+          if (!currentParish.villages.find(v => v.name === villageName)) {
+            currentParish.villages.push({
+              id: generateId('v'),
+              name: villageName
+            });
+          }
+        }
+      }
+      
+      console.log('Imported districts:', districtsData.length);
+      setDistricts(districtsData);
+      // @ts-ignore
+      if (window.alert) window.alert(`Successfully imported ${districtsData.length} districts!`);
+    } catch (err) {
+      console.error('Import error:', err);
+      // @ts-ignore
+      if (window.alert) window.alert('Failed to import CSV file');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) {
+        // @ts-ignore
+        fileInputRef.current.value = '';
+      }
     }
   }, []);
 
@@ -912,6 +1061,28 @@ const AdminDashboardScreen = () => {
             <Text style={styles.subtitle}>Uganda Hierarchical Units • {tableRows.length} Villages</Text>
           </View>
         </View>
+        <View style={styles.headerRight}>
+          <input
+            ref={fileInputRef as any}
+            type="file"
+            accept=".csv"
+            style={{ display: 'none' }}
+            onChange={handleImportCSV}
+          />
+          <TouchableOpacity
+            style={styles.importButton}
+            onPress={() => {
+              // @ts-ignore
+              fileInputRef.current?.click();
+            }}
+            disabled={importing}
+          >
+            <MaterialIcons name="upload-file" size={20} color={colors.white} />
+            <Text style={styles.importButtonText}>
+              {importing ? 'Importing...' : 'Import CSV'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.statsBar}>
@@ -1021,6 +1192,24 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary[500],
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 8,
+  },
+  importButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
   iconContainer: {
     width: 56,
