@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Platform,
@@ -23,6 +24,7 @@ interface Subcounty { id: string; name: string; parishes: Parish[]; }
 interface County { id: string; name: string; subcounties: Subcounty[]; }
 interface District { id: string; name: string; counties: County[]; }
 
+// Represents a single, flattened row for display in the hierarchical table
 interface TableRow {
   uid: string;
   district: string;
@@ -30,17 +32,21 @@ interface TableRow {
   subcounty: string;
   parish: string;
   village: string;
+  // Store actual IDs for CRUD operations
   districtId: string;
   countyId: string;
   subcountyId: string;
   parishId: string;
   villageId: string;
+  // Track which level this row represents (for proper action buttons)
+  level: 'district' | 'county' | 'subcounty' | 'parish' | 'village';
 }
 
 type EditMode = {
   type: 'add' | 'edit';
   level: 'district' | 'county' | 'subcounty' | 'parish' | 'village';
   data?: any;
+  parentData?: any;
 };
 
 // --- MOCK DATA ---
@@ -95,7 +101,13 @@ const INITIAL_MOCK_DATA: District[] = [
   }
 ];
 
-// --- DATA TRANSFORMATION ---
+// --- CORE LOGIC: DATA TRANSFORMATION ---
+
+/**
+ * Transforms nested district data into a flat hierarchical table.
+ * IMPORTANT: Only creates rows for villages. Parent levels appear once and
+ * subsequent rows leave them blank until they change.
+ */
 const processDataForDisplay = (districts: District[]): TableRow[] => {
   const rows: TableRow[] = [];
   let lastDistrict = '';
@@ -104,92 +116,16 @@ const processDataForDisplay = (districts: District[]): TableRow[] => {
   let lastParish = '';
 
   districts.forEach(district => {
-    // If district has no counties, show it anyway
-    if (district.counties.length === 0) {
-      rows.push({
-        uid: district.id,
-        district: district.name,
-        county: '',
-        subcounty: '',
-        parish: '',
-        village: '',
-        districtId: district.id,
-        countyId: '',
-        subcountyId: '',
-        parishId: '',
-        villageId: '',
-      });
-      lastDistrict = district.name;
-      return;
-    }
-
     district.counties.forEach(county => {
-      // If county has no subcounties, show it anyway
-      if (county.subcounties.length === 0) {
-        rows.push({
-          uid: `${district.id}-${county.id}`,
-          district: district.name !== lastDistrict ? district.name : '',
-          county: county.name,
-          subcounty: '',
-          parish: '',
-          village: '',
-          districtId: district.id,
-          countyId: county.id,
-          subcountyId: '',
-          parishId: '',
-          villageId: '',
-        });
-        lastDistrict = district.name;
-        lastCounty = county.name;
-        return;
-      }
-
       county.subcounties.forEach(subcounty => {
-        // If subcounty has no parishes, show it anyway
-        if (subcounty.parishes.length === 0) {
-          rows.push({
-            uid: `${district.id}-${county.id}-${subcounty.id}`,
-            district: district.name !== lastDistrict ? district.name : '',
-            county: county.name !== lastCounty ? county.name : '',
-            subcounty: subcounty.name,
-            parish: '',
-            village: '',
-            districtId: district.id,
-            countyId: county.id,
-            subcountyId: subcounty.id,
-            parishId: '',
-            villageId: '',
-          });
-          lastDistrict = district.name;
-          lastCounty = county.name;
-          lastSubcounty = subcounty.name;
-          return;
-        }
-
         subcounty.parishes.forEach(parish => {
-          // If parish has no villages, show it anyway
-          if (parish.villages.length === 0) {
-            rows.push({
-              uid: `${district.id}-${county.id}-${subcounty.id}-${parish.id}`,
-              district: district.name !== lastDistrict ? district.name : '',
-              county: county.name !== lastCounty ? county.name : '',
-              subcounty: subcounty.name !== lastSubcounty ? subcounty.name : '',
-              parish: parish.name,
-              village: '',
-              districtId: district.id,
-              countyId: county.id,
-              subcountyId: subcounty.id,
-              parishId: parish.id,
-              villageId: '',
-            });
-            lastDistrict = district.name;
-            lastCounty = county.name;
-            lastSubcounty = subcounty.name;
-            lastParish = parish.name;
-            return;
-          }
+          // Only create rows for villages
+          parish.villages.forEach((village, vIndex) => {
+            const isFirstVillageInParish = vIndex === 0;
+            const isFirstParishInSubcounty = parish === subcounty.parishes[0] && isFirstVillageInParish;
+            const isFirstSubcountyInCounty = subcounty === county.subcounties[0] && isFirstParishInSubcounty;
+            const isFirstCountyInDistrict = county === district.counties[0] && isFirstSubcountyInCounty;
 
-          parish.villages.forEach((village) => {
             rows.push({
               uid: village.id,
               district: district.name !== lastDistrict ? district.name : '',
@@ -202,6 +138,7 @@ const processDataForDisplay = (districts: District[]): TableRow[] => {
               subcountyId: subcounty.id,
               parishId: parish.id,
               villageId: village.id,
+              level: 'village',
             });
             
             lastDistrict = district.name;
@@ -217,29 +154,21 @@ const processDataForDisplay = (districts: District[]): TableRow[] => {
   return rows;
 };
 
-// --- ADD/EDIT MODAL ---
-const AddEditModal: React.FC<{
+// --- EDIT MODAL COMPONENT ---
+
+const EditModal: React.FC<{
   visible: boolean;
   editMode: EditMode | null;
-  districts: District[];
   onClose: () => void;
   onSave: (data: any) => void;
-}> = ({ visible, editMode, districts, onClose, onSave }) => {
+}> = ({ visible, editMode, onClose, onSave }) => {
   const [name, setName] = useState('');
-  const [selectedDistrictId, setSelectedDistrictId] = useState('');
-  const [selectedCountyId, setSelectedCountyId] = useState('');
-  const [selectedSubcountyId, setSelectedSubcountyId] = useState('');
-  const [selectedParishId, setSelectedParishId] = useState('');
 
   useEffect(() => {
     if (editMode?.type === 'edit' && editMode.data) {
       setName(editMode.data.name);
     } else {
       setName('');
-      setSelectedDistrictId('');
-      setSelectedCountyId('');
-      setSelectedSubcountyId('');
-      setSelectedParishId('');
     }
   }, [editMode]);
 
@@ -248,26 +177,9 @@ const AddEditModal: React.FC<{
       Alert.alert('Error', 'Please enter a name');
       return;
     }
-
-    const parentIds: any = {};
-    if (editMode?.level === 'county') parentIds.districtId = selectedDistrictId;
-    if (editMode?.level === 'subcounty') {
-      parentIds.districtId = selectedDistrictId;
-      parentIds.countyId = selectedCountyId;
-    }
-    if (editMode?.level === 'parish') {
-      parentIds.districtId = selectedDistrictId;
-      parentIds.countyId = selectedCountyId;
-      parentIds.subcountyId = selectedSubcountyId;
-    }
-    if (editMode?.level === 'village') {
-      parentIds.districtId = selectedDistrictId;
-      parentIds.countyId = selectedCountyId;
-      parentIds.subcountyId = selectedSubcountyId;
-      parentIds.parishId = selectedParishId;
-    }
-
-    onSave({ name: name.trim(), ...parentIds });
+    onSave({ name: name.trim() });
+    setName('');
+    onClose();
   };
 
   const getLevelLabel = () => {
@@ -275,147 +187,47 @@ const AddEditModal: React.FC<{
     return editMode.level.charAt(0).toUpperCase() + editMode.level.slice(1);
   };
 
-  const getCounties = () => {
-    const district = districts.find(d => d.id === selectedDistrictId);
-    return district?.counties || [];
-  };
-
-  const getSubcounties = () => {
-    const district = districts.find(d => d.id === selectedDistrictId);
-    const county = district?.counties.find(c => c.id === selectedCountyId);
-    return county?.subcounties || [];
-  };
-
-  const getParishes = () => {
-    const district = districts.find(d => d.id === selectedDistrictId);
-    const county = district?.counties.find(c => c.id === selectedCountyId);
-    const subcounty = county?.subcounties.find(s => s.id === selectedSubcountyId);
-    return subcounty?.parishes || [];
-  };
-
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editMode?.type === 'add' ? 'Add New' : 'Edit'} {getLevelLabel()}
+              {editMode?.type === 'add' ? 'Add' : 'Edit'} {getLevelLabel()}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <MaterialIcons name="close" size={24} color={colors.gray[600]} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalBody}>
-            {/* Parent Selections for Add Mode */}
-            {editMode?.type === 'add' && (
-              <>
-                {editMode.level !== 'district' && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Select District *</Text>
-                    <View style={styles.pickerContainer}>
-                      <ScrollView style={styles.picker} nestedScrollEnabled>
-                        {districts.map(d => (
-                          <TouchableOpacity
-                            key={d.id}
-                            style={[styles.pickerItem, selectedDistrictId === d.id && styles.pickerItemSelected]}
-                            onPress={() => setSelectedDistrictId(d.id)}
-                          >
-                            <Text style={[styles.pickerText, selectedDistrictId === d.id && styles.pickerTextSelected]}>
-                              {d.name}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  </View>
-                )}
-
-                {editMode.level === 'subcounty' && selectedDistrictId && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Select County *</Text>
-                    <View style={styles.pickerContainer}>
-                      <ScrollView style={styles.picker} nestedScrollEnabled>
-                        {getCounties().map(c => (
-                          <TouchableOpacity
-                            key={c.id}
-                            style={[styles.pickerItem, selectedCountyId === c.id && styles.pickerItemSelected]}
-                            onPress={() => setSelectedCountyId(c.id)}
-                          >
-                            <Text style={[styles.pickerText, selectedCountyId === c.id && styles.pickerTextSelected]}>
-                              {c.name}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  </View>
-                )}
-
-                {editMode.level === 'parish' && selectedCountyId && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Select Subcounty *</Text>
-                    <View style={styles.pickerContainer}>
-                      <ScrollView style={styles.picker} nestedScrollEnabled>
-                        {getSubcounties().map(s => (
-                          <TouchableOpacity
-                            key={s.id}
-                            style={[styles.pickerItem, selectedSubcountyId === s.id && styles.pickerItemSelected]}
-                            onPress={() => setSelectedSubcountyId(s.id)}
-                          >
-                            <Text style={[styles.pickerText, selectedSubcountyId === s.id && styles.pickerTextSelected]}>
-                              {s.name}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  </View>
-                )}
-
-                {editMode.level === 'village' && selectedSubcountyId && (
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Select Parish *</Text>
-                    <View style={styles.pickerContainer}>
-                      <ScrollView style={styles.picker} nestedScrollEnabled>
-                        {getParishes().map(p => (
-                          <TouchableOpacity
-                            key={p.id}
-                            style={[styles.pickerItem, selectedParishId === p.id && styles.pickerItemSelected]}
-                            onPress={() => setSelectedParishId(p.id)}
-                          >
-                            <Text style={[styles.pickerText, selectedParishId === p.id && styles.pickerTextSelected]}>
-                              {p.name}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  </View>
-                )}
-              </>
-            )}
-
-            {/* Name Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{getLevelLabel()} Name *</Text>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder={`Enter ${getLevelLabel().toLowerCase()} name`}
-                placeholderTextColor={colors.gray[400]}
-                autoFocus={editMode?.type === 'edit'}
-              />
-            </View>
-          </ScrollView>
+          <View style={styles.modalBody}>
+            <Text style={styles.inputLabel}>{getLevelLabel()} Name</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder={`Enter ${getLevelLabel().toLowerCase()} name`}
+              placeholderTextColor={colors.gray[400]}
+              autoFocus
+            />
+          </View>
 
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={onClose}
+            >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSave}>
-              <MaterialIcons name="check" size={18} color={colors.white} />
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton]}
+              onPress={handleSave}
+            >
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
@@ -425,99 +237,107 @@ const AddEditModal: React.FC<{
   );
 };
 
-// --- TABLE COMPONENTS ---
-const TableHeader: React.FC<{
-  onAddDistrict: () => void;
-  onAddCounty: () => void;
-  onAddSubcounty: () => void;
-  onAddParish: () => void;
-  onAddVillage: () => void;
-}> = ({ onAddDistrict, onAddCounty, onAddSubcounty, onAddParish, onAddVillage }) => (
+// --- TABLE HEADER COMPONENT ---
+
+const TableHeader = () => (
   <View style={styles.tableHeader}>
-    <View style={[styles.headerCell, styles.districtCol]}>
-      <Text style={styles.headerCellText}>District</Text>
-      <TouchableOpacity style={styles.headerAddBtn} onPress={onAddDistrict}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
-      </TouchableOpacity>
-    </View>
-    <View style={[styles.headerCell, styles.countyCol]}>
-      <Text style={styles.headerCellText}>County</Text>
-      <TouchableOpacity style={styles.headerAddBtn} onPress={onAddCounty}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
-      </TouchableOpacity>
-    </View>
-    <View style={[styles.headerCell, styles.subcountyCol]}>
-      <Text style={styles.headerCellText}>Subcounty / Division</Text>
-      <TouchableOpacity style={styles.headerAddBtn} onPress={onAddSubcounty}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
-      </TouchableOpacity>
-    </View>
-    <View style={[styles.headerCell, styles.parishCol]}>
-      <Text style={styles.headerCellText}>Parish / Ward</Text>
-      <TouchableOpacity style={styles.headerAddBtn} onPress={onAddParish}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
-      </TouchableOpacity>
-    </View>
-    <View style={[styles.headerCell, styles.villageCol]}>
-      <Text style={styles.headerCellText}>Village / Cell</Text>
-      <TouchableOpacity style={styles.headerAddBtn} onPress={onAddVillage}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
-      </TouchableOpacity>
-    </View>
+    <Text style={[styles.headerCell, styles.districtCol]}>District</Text>
+    <Text style={[styles.headerCell, styles.countyCol]}>County</Text>
+    <Text style={[styles.headerCell, styles.subcountyCol]}>Subcounty / Division</Text>
+    <Text style={[styles.headerCell, styles.parishCol]}>Parish / Ward</Text>
+    <Text style={[styles.headerCell, styles.villageCol]}>Village / Cell</Text>
+    <Text style={[styles.headerCell, styles.actionsCol]}>Actions</Text>
   </View>
 );
+
+// --- TABLE ROW COMPONENT ---
 
 const TableRowItem: React.FC<{
   item: TableRow;
   onEdit: (level: string, data: any) => void;
   onDelete: (level: string, data: any) => void;
-}> = ({ item, onEdit, onDelete }) => {
+  onAdd: (level: string, parentData: any) => void;
+}> = ({ item, onEdit, onDelete, onAdd }) => {
   
-  const renderCell = (level: string, value: string, data: any) => {
-    if (!value) return <View style={styles.tableCell} />;
-
-    // Only show edit/delete if the item has a valid ID
-    const hasValidId = data.id && data.id !== '';
+  const renderCellContent = (
+    level: 'district' | 'county' | 'subcounty' | 'parish' | 'village',
+    value: string,
+    data: any
+  ) => {
+    if (!value) return null;
 
     return (
-      <View style={styles.tableCell}>
-        <Text style={styles.cellText} numberOfLines={2}>{value}</Text>
-        {hasValidId && (
-          <View style={styles.cellActions}>
-            <TouchableOpacity style={styles.cellActionBtn} onPress={() => onEdit(level, data)}>
-              <MaterialIcons name="edit" size={16} color={colors.primary[600]} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cellActionBtn} onPress={() => onDelete(level, data)}>
-              <MaterialIcons name="delete" size={16} color={colors.danger[600]} />
-            </TouchableOpacity>
-          </View>
-        )}
+      <View style={styles.cellContent}>
+        <Text style={styles.cellText} numberOfLines={1}>{value}</Text>
+        <View style={styles.cellActions}>
+          <TouchableOpacity
+            style={styles.cellActionBtn}
+            onPress={() => onEdit(level, data)}
+          >
+            <MaterialIcons name="edit" size={16} color={colors.primary[500]} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cellActionBtn}
+            onPress={() => onDelete(level, data)}
+          >
+            <MaterialIcons name="delete" size={16} color={colors.danger[500]} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cellActionBtn}
+            onPress={() => onAdd(level, data)}
+          >
+            <MaterialIcons name="add-circle" size={16} color={colors.success[500]} />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
 
   return (
     <View style={styles.tableRow}>
-      <View style={styles.districtCol}>
-        {renderCell('district', item.district, { id: item.districtId, name: item.district })}
+      <View style={[styles.tableCell, styles.districtCol]}>
+        {renderCellContent('district', item.district, {
+          id: item.districtId,
+          name: item.district
+        })}
       </View>
-      <View style={styles.countyCol}>
-        {renderCell('county', item.county, { id: item.countyId, name: item.county })}
+      <View style={[styles.tableCell, styles.countyCol]}>
+        {renderCellContent('county', item.county, {
+          id: item.countyId,
+          name: item.county,
+          districtId: item.districtId
+        })}
       </View>
-      <View style={styles.subcountyCol}>
-        {renderCell('subcounty', item.subcounty, { id: item.subcountyId, name: item.subcounty })}
+      <View style={[styles.tableCell, styles.subcountyCol]}>
+        {renderCellContent('subcounty', item.subcounty, {
+          id: item.subcountyId,
+          name: item.subcounty,
+          countyId: item.countyId
+        })}
       </View>
-      <View style={styles.parishCol}>
-        {renderCell('parish', item.parish, { id: item.parishId, name: item.parish })}
+      <View style={[styles.tableCell, styles.parishCol]}>
+        {renderCellContent('parish', item.parish, {
+          id: item.parishId,
+          name: item.parish,
+          subcountyId: item.subcountyId
+        })}
       </View>
-      <View style={styles.villageCol}>
-        {renderCell('village', item.village, { id: item.villageId, name: item.village })}
+      <View style={[styles.tableCell, styles.villageCol]}>
+        {renderCellContent('village', item.village, {
+          id: item.villageId,
+          name: item.village,
+          parishId: item.parishId
+        })}
+      </View>
+      <View style={[styles.tableCell, styles.actionsCol]}>
+        {/* Reserved for row-level actions if needed */}
       </View>
     </View>
   );
 };
 
-// --- MAIN SCREEN ---
+// --- MAIN SCREEN COMPONENT ---
+
 const AdminDashboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -530,11 +350,12 @@ const AdminDashboardScreen = () => {
       try {
         setLoading(true);
         setError(null);
+        // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 500));
         setDistricts(INITIAL_MOCK_DATA);
       } catch (e) {
         console.error(e);
-        setError('Failed to fetch location data.');
+        setError('Failed to fetch location data. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -544,35 +365,32 @@ const AdminDashboardScreen = () => {
 
   const tableRows = useMemo(() => processDataForDisplay(districts), [districts]);
 
-  const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substr(2, 5)}`;
-
-  // CRUD Handlers
-  const handleAdd = useCallback((level: 'district' | 'county' | 'subcounty' | 'parish' | 'village') => {
-    setEditMode({ type: 'add', level });
-    setShowModal(true);
-  }, []);
+  // --- CRUD HANDLERS ---
 
   const handleEdit = useCallback((level: string, data: any) => {
-    setEditMode({ type: 'edit', level: level as any, data });
+    setEditMode({
+      type: 'edit',
+      level: level as any,
+      data: data
+    });
     setShowModal(true);
   }, []);
 
   const handleDelete = useCallback((level: string, data: any) => {
     Alert.alert(
       'Confirm Delete',
-      `Delete "${data.name}"? All child units will also be deleted.`,
+      `Are you sure you want to delete this ${level}? This will also delete all child units.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            setDistricts(prev => {
-              const newDistricts = JSON.parse(JSON.stringify(prev));
+            setDistricts(prevDistricts => {
+              const newDistricts = JSON.parse(JSON.stringify(prevDistricts));
               
               if (level === 'district') {
-                const filtered = newDistricts.filter((d: District) => d.id !== data.id);
-                return filtered;
+                return newDistricts.filter((d: District) => d.id !== data.id);
               }
               
               if (level === 'county') {
@@ -629,22 +447,53 @@ const AdminDashboardScreen = () => {
     );
   }, []);
 
+  const handleAdd = useCallback((parentLevel: string, parentData: any) => {
+    const levelOrder = ['district', 'county', 'subcounty', 'parish', 'village'];
+    const parentIndex = levelOrder.indexOf(parentLevel);
+    const childLevel = levelOrder[parentIndex + 1];
+
+    if (!childLevel) {
+      Alert.alert('Info', 'Cannot add child to village level');
+      return;
+    }
+
+    setEditMode({
+      type: 'add',
+      level: childLevel as any,
+      parentData: parentData
+    });
+    setShowModal(true);
+  }, []);
+
+  const generateId = (prefix: string) => {
+    return `${prefix}${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+  };
+
   const handleSave = useCallback((formData: any) => {
     if (!editMode) return;
 
     if (editMode.type === 'add') {
-      setDistricts(prev => {
-        const newDistricts = JSON.parse(JSON.stringify(prev));
+      // Adding new item
+      setDistricts(prevDistricts => {
+        const newDistricts = JSON.parse(JSON.stringify(prevDistricts));
         
         if (editMode.level === 'district') {
-          const newDistrict: District = { id: generateId('d'), name: formData.name, counties: [] };
+          const newDistrict: District = {
+            id: generateId('d'),
+            name: formData.name,
+            counties: []
+          };
           return [...newDistricts, newDistrict];
         }
         
         if (editMode.level === 'county') {
           return newDistricts.map((d: District) => {
-            if (d.id === formData.districtId) {
-              const newCounty: County = { id: generateId('c'), name: formData.name, subcounties: [] };
+            if (d.id === editMode.parentData.id) {
+              const newCounty: County = {
+                id: generateId('c'),
+                name: formData.name,
+                subcounties: []
+              };
               return { ...d, counties: [...d.counties, newCounty] };
             }
             return d;
@@ -655,8 +504,12 @@ const AdminDashboardScreen = () => {
           return newDistricts.map((d: District) => ({
             ...d,
             counties: d.counties.map((c: County) => {
-              if (c.id === formData.countyId) {
-                const newSubcounty: Subcounty = { id: generateId('s'), name: formData.name, parishes: [] };
+              if (c.id === editMode.parentData.id) {
+                const newSubcounty: Subcounty = {
+                  id: generateId('s'),
+                  name: formData.name,
+                  parishes: []
+                };
                 return { ...c, subcounties: [...c.subcounties, newSubcounty] };
               }
               return c;
@@ -670,8 +523,12 @@ const AdminDashboardScreen = () => {
             counties: d.counties.map((c: County) => ({
               ...c,
               subcounties: c.subcounties.map((s: Subcounty) => {
-                if (s.id === formData.subcountyId) {
-                  const newParish: Parish = { id: generateId('p'), name: formData.name, villages: [] };
+                if (s.id === editMode.parentData.id) {
+                  const newParish: Parish = {
+                    id: generateId('p'),
+                    name: formData.name,
+                    villages: []
+                  };
                   return { ...s, parishes: [...s.parishes, newParish] };
                 }
                 return s;
@@ -688,8 +545,11 @@ const AdminDashboardScreen = () => {
               subcounties: c.subcounties.map((s: Subcounty) => ({
                 ...s,
                 parishes: s.parishes.map((p: Parish) => {
-                  if (p.id === formData.parishId) {
-                    const newVillage: Village = { id: generateId('v'), name: formData.name };
+                  if (p.id === editMode.parentData.id) {
+                    const newVillage: Village = {
+                      id: generateId('v'),
+                      name: formData.name
+                    };
                     return { ...p, villages: [...p.villages, newVillage] };
                   }
                   return p;
@@ -702,8 +562,9 @@ const AdminDashboardScreen = () => {
         return newDistricts;
       });
     } else {
-      setDistricts(prev => {
-        const newDistricts = JSON.parse(JSON.stringify(prev));
+      // Editing existing item
+      setDistricts(prevDistricts => {
+        const newDistricts = JSON.parse(JSON.stringify(prevDistricts));
         
         if (editMode.level === 'district') {
           return newDistricts.map((d: District) => 
@@ -768,10 +629,15 @@ const AdminDashboardScreen = () => {
         return newDistricts;
       });
     }
-    
-    setShowModal(false);
-    setEditMode(null);
   }, [editMode]);
+
+  const handleAddDistrict = useCallback(() => {
+    setEditMode({
+      type: 'add',
+      level: 'district'
+    });
+    setShowModal(true);
+  }, []);
 
   if (loading) {
     return (
@@ -787,12 +653,26 @@ const AdminDashboardScreen = () => {
       <View style={styles.centered}>
         <MaterialIcons name="error-outline" size={64} color={colors.danger[500]} />
         <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            setError(null);
+            setLoading(true);
+            setTimeout(() => {
+              setDistricts(INITIAL_MOCK_DATA);
+              setLoading(false);
+            }, 500);
+          }}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
@@ -800,11 +680,16 @@ const AdminDashboardScreen = () => {
           </View>
           <View>
             <Text style={styles.title}>Administrative Dashboard</Text>
-            <Text style={styles.subtitle}>Uganda Hierarchical Units • {tableRows.length} Villages</Text>
+            <Text style={styles.subtitle}>Uganda Hierarchical Units</Text>
           </View>
         </View>
+        <TouchableOpacity style={styles.addDistrictButton} onPress={handleAddDistrict}>
+          <MaterialIcons name="add" size={20} color={colors.white} />
+          <Text style={styles.addDistrictButtonText}>Add District</Text>
+        </TouchableOpacity>
       </View>
 
+      {/* Stats Bar */}
       <View style={styles.statsBar}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{districts.length}</Text>
@@ -819,31 +704,17 @@ const AdminDashboardScreen = () => {
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>
-            {districts.reduce((sum, d) => 
-              sum + d.counties.reduce((s, c) => s + c.subcounties.length, 0), 0
-            )}
-          </Text>
-          <Text style={styles.statLabel}>Subcounties</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
           <Text style={styles.statValue}>{tableRows.length}</Text>
           <Text style={styles.statLabel}>Villages</Text>
         </View>
       </View>
 
+      {/* Table */}
       <View style={styles.tableWrapper}>
         <View style={styles.tableContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-            <View style={{ minWidth: 1100 }}>
-              <TableHeader
-                onAddDistrict={() => handleAdd('district')}
-                onAddCounty={() => handleAdd('county')}
-                onAddSubcounty={() => handleAdd('subcounty')}
-                onAddParish={() => handleAdd('parish')}
-                onAddVillage={() => handleAdd('village')}
-              />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ minWidth: 1200 }}>
+              <TableHeader />
               <ScrollView style={styles.tableScrollView}>
                 {tableRows.map((item) => (
                   <TableRowItem
@@ -851,6 +722,7 @@ const AdminDashboardScreen = () => {
                     item={item}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
+                    onAdd={handleAdd}
                   />
                 ))}
               </ScrollView>
@@ -859,10 +731,10 @@ const AdminDashboardScreen = () => {
         </View>
       </View>
 
-      <AddEditModal
+      {/* Edit Modal */}
+      <EditModal
         visible={showModal}
         editMode={editMode}
-        districts={districts}
         onClose={() => {
           setShowModal(false);
           setEditMode(null);
@@ -874,6 +746,7 @@ const AdminDashboardScreen = () => {
 };
 
 // --- STYLES ---
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -896,8 +769,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 16,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: colors.primary[500],
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
   
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -907,6 +793,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      },
+      default: {
+        elevation: 2,
+      },
+    }),
   },
   headerLeft: {
     flexDirection: 'row',
@@ -932,7 +826,30 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     fontWeight: '500',
   },
+  addDistrictButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary[500],
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(19, 91, 236, 0.3)',
+      },
+      default: {
+        elevation: 3,
+      },
+    }),
+  },
+  addDistrictButtonText: {
+    color: colors.white,
+    fontWeight: '600',
+    marginLeft: 8,
+    fontSize: 14,
+  },
 
+  // Stats Bar
   statsBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -943,6 +860,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingVertical: 16,
     borderRadius: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+      },
+      default: {
+        elevation: 1,
+      },
+    }),
   },
   statItem: {
     alignItems: 'center',
@@ -964,6 +889,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[200],
   },
 
+  // Table
   tableWrapper: {
     flex: 1,
     marginHorizontal: 24,
@@ -974,6 +900,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+      },
+      default: {
+        elevation: 3,
+      },
+    }),
   },
   tableScrollView: {
     flex: 1,
@@ -987,34 +921,27 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary[500],
   },
   headerCell: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerCellText: {
     fontSize: 13,
     fontWeight: '700',
     color: colors.white,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  headerAddBtn: {
-    padding: 4,
-    marginLeft: 8,
-  },
   tableRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[100],
-    minHeight: 50,
+    backgroundColor: colors.white,
   },
   tableCell: {
+    justifyContent: 'center',
+  },
+  cellContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    justifyContent: 'space-between',
   },
   cellText: {
     fontSize: 14,
@@ -1034,15 +961,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[50],
   },
 
-  districtCol: { width: 200 },
-  countyCol: { width: 220 },
-  subcountyCol: { width: 230 },
-  parishCol: { width: 220 },
-  villageCol: { width: 220 },
+  // Column widths
+  districtCol: { width: 180 },
+  countyCol: { width: 200 },
+  subcountyCol: { width: 220 },
+  parishCol: { width: 200 },
+  villageCol: { width: 200 },
+  actionsCol: { width: 100 },
 
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1051,7 +981,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: '90%',
     maxWidth: 500,
-    maxHeight: '80%',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      },
+      default: {
+        elevation: 8,
+      },
+    }),
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1073,10 +1010,6 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 24,
-    maxHeight: 400,
-  },
-  inputGroup: {
-    marginBottom: 20,
   },
   inputLabel: {
     fontSize: 14,
@@ -1092,34 +1025,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: colors.gray[900],
-    backgroundColor: colors.white,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: colors.gray[300],
-    borderRadius: 8,
-    maxHeight: 150,
-    backgroundColor: colors.white,
-  },
-  picker: {
-    maxHeight: 150,
-  },
-  pickerItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
-  },
-  pickerItemSelected: {
-    backgroundColor: colors.primary[50],
-  },
-  pickerText: {
-    fontSize: 15,
-    color: colors.gray[800],
-  },
-  pickerTextSelected: {
-    color: colors.primary[700],
-    fontWeight: '600',
+    backgroundColor: colors.gray[50],
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1130,8 +1036,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.gray[200],
   },
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -1152,7 +1056,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
     fontSize: 14,
-    marginLeft: 6,
   },
 });
 
