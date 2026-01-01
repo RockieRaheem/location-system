@@ -510,19 +510,49 @@ const TableRowItem: React.FC<{
   return (
     <View style={styles.tableRow}>
       <View style={styles.districtCol}>
-        {renderCell('district', item.district, { id: item.districtId, name: item.district })}
+        {renderCell('district', item.district, { 
+          id: item.districtId, 
+          name: item.district,
+          districtId: item.districtId
+        })}
       </View>
       <View style={styles.countyCol}>
-        {renderCell('county', item.county, { id: item.countyId, name: item.county })}
+        {renderCell('county', item.county, { 
+          id: item.countyId, 
+          name: item.county,
+          districtId: item.districtId,
+          countyId: item.countyId
+        })}
       </View>
       <View style={styles.subcountyCol}>
-        {renderCell('subcounty', item.subcounty, { id: item.subcountyId, name: item.subcounty })}
+        {renderCell('subcounty', item.subcounty, { 
+          id: item.subcountyId, 
+          name: item.subcounty,
+          districtId: item.districtId,
+          countyId: item.countyId,
+          subcountyId: item.subcountyId
+        })}
       </View>
       <View style={styles.parishCol}>
-        {renderCell('parish', item.parish, { id: item.parishId, name: item.parish })}
+        {renderCell('parish', item.parish, { 
+          id: item.parishId, 
+          name: item.parish,
+          districtId: item.districtId,
+          countyId: item.countyId,
+          subcountyId: item.subcountyId,
+          parishId: item.parishId
+        })}
       </View>
       <View style={styles.villageCol}>
-        {renderCell('village', item.village, { id: item.villageId, name: item.village })}
+        {renderCell('village', item.village, { 
+          id: item.villageId, 
+          name: item.village,
+          districtId: item.districtId,
+          countyId: item.countyId,
+          subcountyId: item.subcountyId,
+          parishId: item.parishId,
+          villageId: item.villageId
+        })}
       </View>
     </View>
   );
@@ -577,70 +607,125 @@ const AdminDashboardScreen = () => {
   }, []);
 
   const handleDelete = useCallback((level: string, data: any) => {
-    Alert.alert(
-      'Confirm Delete',
-      `Delete "${data.name}"? All child units will also be deleted.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setDistricts(prevDistricts => {
-              let newDistricts = JSON.parse(JSON.stringify(prevDistricts)) as District[];
-              
-              if (level === 'district') {
-                newDistricts = newDistricts.filter((d: District) => d.id !== data.id);
-              }
-              else if (level === 'county') {
-                newDistricts = newDistricts.map((d: District) => ({
-                  ...d,
-                  counties: d.counties.filter((c: County) => c.id !== data.id)
-                }));
-              }
-              else if (level === 'subcounty') {
-                newDistricts = newDistricts.map((d: District) => ({
-                  ...d,
-                  counties: d.counties.map((c: County) => ({
-                    ...c,
-                    subcounties: c.subcounties.filter((s: Subcounty) => s.id !== data.id)
-                  }))
-                }));
-              }
-              else if (level === 'parish') {
-                newDistricts = newDistricts.map((d: District) => ({
-                  ...d,
-                  counties: d.counties.map((c: County) => ({
-                    ...c,
-                    subcounties: c.subcounties.map((s: Subcounty) => ({
-                      ...s,
-                      parishes: s.parishes.filter((p: Parish) => p.id !== data.id)
-                    }))
-                  }))
-                }));
-              }
-              else if (level === 'village') {
-                newDistricts = newDistricts.map((d: District) => ({
-                  ...d,
-                  counties: d.counties.map((c: County) => ({
-                    ...c,
-                    subcounties: c.subcounties.map((s: Subcounty) => ({
-                      ...s,
-                      parishes: s.parishes.map((p: Parish) => ({
-                        ...p,
-                        villages: p.villages.filter((v: Village) => v.id !== data.id)
-                      }))
-                    }))
-                  }))
-                }));
-              }
-              
-              return newDistricts;
-            });
-          }
+    const performDelete = () => {
+      setDistricts(prevDistricts => {
+        let newDistricts = JSON.parse(JSON.stringify(prevDistricts)) as District[];
+        
+        if (level === 'district') {
+          newDistricts = newDistricts.filter((d: District) => d.id !== data.districtId);
         }
-      ]
-    );
+        else if (level === 'county') {
+          newDistricts = newDistricts.map((d: District) => {
+            if (d.id === data.districtId) {
+              return {
+                ...d,
+                counties: d.counties.filter((c: County) => c.id !== data.countyId)
+              };
+            }
+            return d;
+          });
+        }
+        else if (level === 'subcounty') {
+          newDistricts = newDistricts.map((d: District) => {
+            if (d.id === data.districtId) {
+              return {
+                ...d,
+                counties: d.counties.map((c: County) => {
+                  if (c.id === data.countyId) {
+                    return {
+                      ...c,
+                      subcounties: c.subcounties.filter((s: Subcounty) => s.id !== data.subcountyId)
+                    };
+                  }
+                  return c;
+                })
+              };
+            }
+            return d;
+          });
+        }
+        else if (level === 'parish') {
+          newDistricts = newDistricts.map((d: District) => {
+            if (d.id === data.districtId) {
+              return {
+                ...d,
+                counties: d.counties.map((c: County) => {
+                  if (c.id === data.countyId) {
+                    return {
+                      ...c,
+                      subcounties: c.subcounties.map((s: Subcounty) => {
+                        if (s.id === data.subcountyId) {
+                          return {
+                            ...s,
+                            parishes: s.parishes.filter((p: Parish) => p.id !== data.parishId)
+                          };
+                        }
+                        return s;
+                      })
+                    };
+                  }
+                  return c;
+                })
+              };
+            }
+            return d;
+          });
+        }
+        else if (level === 'village') {
+          newDistricts = newDistricts.map((d: District) => {
+            if (d.id === data.districtId) {
+              return {
+                ...d,
+                counties: d.counties.map((c: County) => {
+                  if (c.id === data.countyId) {
+                    return {
+                      ...c,
+                      subcounties: c.subcounties.map((s: Subcounty) => {
+                        if (s.id === data.subcountyId) {
+                          return {
+                            ...s,
+                            parishes: s.parishes.map((p: Parish) => {
+                              if (p.id === data.parishId) {
+                                return {
+                                  ...p,
+                                  villages: p.villages.filter((v: Village) => v.id !== data.villageId)
+                                };
+                              }
+                              return p;
+                            })
+                          };
+                        }
+                        return s;
+                      })
+                    };
+                  }
+                  return c;
+                })
+              };
+            }
+            return d;
+          });
+        }
+        
+        return newDistricts;
+      });
+    };
+
+    if (Platform.OS === 'web') {
+      // @ts-ignore - window is available on web
+      if (window.confirm(`Delete "${data.name}"? All child units will also be deleted.`)) {
+        performDelete();
+      }
+    } else {
+      Alert.alert(
+        'Confirm Delete',
+        `Delete "${data.name}"? All child units will also be deleted.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: performDelete }
+        ]
+      );
+    }
   }, []);
 
   const handleSave = useCallback((formData: any) => {
