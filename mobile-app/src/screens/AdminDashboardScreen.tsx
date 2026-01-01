@@ -1256,3 +1256,6 @@ const styles = StyleSheet.create({
 });
 
 export default AdminDashboardScreen;
+
+
+
