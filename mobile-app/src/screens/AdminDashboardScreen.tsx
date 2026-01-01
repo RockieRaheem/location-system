@@ -457,31 +457,31 @@ const TableHeader: React.FC<{
     <View style={[styles.headerCell, styles.districtCol]}>
       <Text style={styles.headerCellText}>District</Text>
       <TouchableOpacity style={styles.headerAddBtn} onPress={onAddDistrict}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
+        <MaterialIcons name="add-circle" size={20} color={colors.white} />
       </TouchableOpacity>
     </View>
     <View style={[styles.headerCell, styles.countyCol]}>
       <Text style={styles.headerCellText}>County</Text>
       <TouchableOpacity style={styles.headerAddBtn} onPress={onAddCounty}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
+        <MaterialIcons name="add-circle" size={20} color={colors.white} />
       </TouchableOpacity>
     </View>
     <View style={[styles.headerCell, styles.subcountyCol]}>
       <Text style={styles.headerCellText}>Subcounty / Division</Text>
       <TouchableOpacity style={styles.headerAddBtn} onPress={onAddSubcounty}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
+        <MaterialIcons name="add-circle" size={20} color={colors.white} />
       </TouchableOpacity>
     </View>
     <View style={[styles.headerCell, styles.parishCol]}>
       <Text style={styles.headerCellText}>Parish / Ward</Text>
       <TouchableOpacity style={styles.headerAddBtn} onPress={onAddParish}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
+        <MaterialIcons name="add-circle" size={20} color={colors.white} />
       </TouchableOpacity>
     </View>
     <View style={[styles.headerCell, styles.villageCol]}>
       <Text style={styles.headerCellText}>Village / Cell</Text>
       <TouchableOpacity style={styles.headerAddBtn} onPress={onAddVillage}>
-        <MaterialIcons name="add-circle" size={18} color={colors.success[500]} />
+        <MaterialIcons name="add-circle" size={20} color={colors.white} />
       </TouchableOpacity>
     </View>
   </View>
@@ -489,18 +489,19 @@ const TableHeader: React.FC<{
 
 const TableRowItem: React.FC<{
   item: TableRow;
+  index: number;
   onEdit: (level: string, data: any) => void;
   onDelete: (level: string, data: any) => void;
-}> = ({ item, onEdit, onDelete }) => {
+}> = ({ item, index, onEdit, onDelete }) => {
   
-  const renderCell = (level: string, value: string, data: any) => {
-    if (!value) return <View style={styles.tableCell} />;
+  const renderCell = (level: string, value: string, data: any, isLastColumn: boolean = false) => {
+    if (!value) return <View style={[styles.tableCell, isLastColumn && { borderRightWidth: 0 }]} />;
 
     // Only show edit/delete if the item has a valid ID
     const hasValidId = data.id && data.id !== '';
 
     return (
-      <View style={styles.tableCell}>
+      <View style={[styles.tableCell, isLastColumn && { borderRightWidth: 0 }]}>
         <Text style={styles.cellText} numberOfLines={2}>{value}</Text>
         {hasValidId && (
           <View style={styles.cellActions}>
@@ -517,7 +518,7 @@ const TableRowItem: React.FC<{
   };
 
   return (
-    <View style={styles.tableRow}>
+    <View style={[styles.tableRow, index % 2 === 1 && { backgroundColor: colors.gray[50] }]}>
       <View style={styles.districtCol}>
         {renderCell('district', item.district, { 
           id: item.districtId, 
@@ -561,7 +562,7 @@ const TableRowItem: React.FC<{
           subcountyId: item.subcountyId,
           parishId: item.parishId,
           villageId: item.villageId
-        })}
+        }, true)}
       </View>
     </View>
   );
@@ -944,7 +945,7 @@ const AdminDashboardScreen = () => {
       <View style={styles.tableWrapper}>
         <View style={styles.tableContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-            <View style={{ minWidth: 1100 }}>
+            <View style={{ minWidth: 1200 }}>
               <TableHeader
                 onAddDistrict={() => handleAdd('district')}
                 onAddCounty={() => handleAdd('county')}
@@ -953,10 +954,11 @@ const AdminDashboardScreen = () => {
                 onAddVillage={() => handleAdd('village')}
               />
               <ScrollView style={styles.tableScrollView}>
-                {tableRows.map((item) => (
+                {tableRows.map((item, index) => (
                   <TableRowItem
                     key={item.uid}
                     item={item}
+                    index={index}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                   />
@@ -1074,14 +1076,21 @@ const styles = StyleSheet.create({
 
   tableWrapper: {
     flex: 1,
-    marginHorizontal: 24,
-    marginBottom: 24,
+    marginHorizontal: 32,
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
   tableContainer: {
     flex: 1,
     backgroundColor: colors.white,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.gray[200],
   },
   tableScrollView: {
     flex: 1,
@@ -1089,40 +1098,48 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: colors.gray[800],
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 2,
+    paddingVertical: 16,
+    borderBottomWidth: 3,
     borderBottomColor: colors.primary[500],
   },
   headerCell: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    borderRightWidth: 1,
+    borderRightColor: colors.gray[600],
   },
   headerCellText: {
     fontSize: 13,
     fontWeight: '700',
     color: colors.white,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   headerAddBtn: {
-    padding: 4,
-    marginLeft: 8,
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: colors.success[500],
+    marginTop: 2,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.gray[100],
-    minHeight: 50,
+    borderBottomColor: colors.gray[200],
+    minHeight: 56,
+    backgroundColor: colors.white,
   },
   tableCell: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRightWidth: 1,
+    borderRightColor: colors.gray[200],
   },
   cellText: {
     fontSize: 14,
@@ -1134,19 +1151,36 @@ const styles = StyleSheet.create({
   cellActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   cellActionBtn: {
     padding: 6,
-    marginLeft: 4,
-    borderRadius: 4,
-    backgroundColor: colors.gray[50],
+    borderRadius: 6,
+    backgroundColor: colors.gray[100],
+    borderWidth: 1,
+    borderColor: colors.gray[200],
   },
 
-  districtCol: { width: 200 },
-  countyCol: { width: 220 },
-  subcountyCol: { width: 230 },
-  parishCol: { width: 220 },
-  villageCol: { width: 220 },
+  districtCol: { 
+    width: 220,
+    minWidth: 220,
+  },
+  countyCol: { 
+    width: 240,
+    minWidth: 240,
+  },
+  subcountyCol: { 
+    width: 260,
+    minWidth: 260,
+  },
+  parishCol: { 
+    width: 240,
+    minWidth: 240,
+  },
+  villageCol: { 
+    width: 240,
+    minWidth: 240,
+  },
 
   modalOverlay: {
     flex: 1,
