@@ -29,7 +29,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Login"
+        initialRouteName="AdminDashboard"
         screenOptions={{
           headerShown: false,
           cardStyle: { backgroundColor: '#f6f6f8' },
