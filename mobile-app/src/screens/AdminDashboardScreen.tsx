@@ -249,6 +249,26 @@ const AddEditModal: React.FC<{
       return;
     }
 
+    // Validate parent selections based on level
+    if (editMode?.type === 'add') {
+      if (editMode.level === 'county' && !selectedDistrictId) {
+        Alert.alert('Error', 'Please select a district');
+        return;
+      }
+      if (editMode.level === 'subcounty' && (!selectedDistrictId || !selectedCountyId)) {
+        Alert.alert('Error', 'Please select both district and county');
+        return;
+      }
+      if (editMode.level === 'parish' && (!selectedDistrictId || !selectedCountyId || !selectedSubcountyId)) {
+        Alert.alert('Error', 'Please select district, county, and subcounty');
+        return;
+      }
+      if (editMode.level === 'village' && (!selectedDistrictId || !selectedCountyId || !selectedSubcountyId || !selectedParishId)) {
+        Alert.alert('Error', 'Please select district, county, subcounty, and parish');
+        return;
+      }
+    }
+
     const parentIds: any = {};
     if (editMode?.level === 'county') parentIds.districtId = selectedDistrictId;
     if (editMode?.level === 'subcounty') {
@@ -319,7 +339,13 @@ const AddEditModal: React.FC<{
                           <TouchableOpacity
                             key={d.id}
                             style={[styles.pickerItem, selectedDistrictId === d.id && styles.pickerItemSelected]}
-                            onPress={() => setSelectedDistrictId(d.id)}
+                            onPress={() => {
+                              setSelectedDistrictId(d.id);
+                              // Reset dependent selections
+                              setSelectedCountyId('');
+                              setSelectedSubcountyId('');
+                              setSelectedParishId('');
+                            }}
                           >
                             <Text style={[styles.pickerText, selectedDistrictId === d.id && styles.pickerTextSelected]}>
                               {d.name}
@@ -331,7 +357,7 @@ const AddEditModal: React.FC<{
                   </View>
                 )}
 
-                {editMode.level === 'subcounty' && selectedDistrictId && (
+                {(editMode.level === 'subcounty' || editMode.level === 'parish' || editMode.level === 'village') && selectedDistrictId && (
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Select County *</Text>
                     <View style={styles.pickerContainer}>
@@ -340,7 +366,12 @@ const AddEditModal: React.FC<{
                           <TouchableOpacity
                             key={c.id}
                             style={[styles.pickerItem, selectedCountyId === c.id && styles.pickerItemSelected]}
-                            onPress={() => setSelectedCountyId(c.id)}
+                            onPress={() => {
+                              setSelectedCountyId(c.id);
+                              // Reset dependent selections
+                              setSelectedSubcountyId('');
+                              setSelectedParishId('');
+                            }}
                           >
                             <Text style={[styles.pickerText, selectedCountyId === c.id && styles.pickerTextSelected]}>
                               {c.name}
@@ -352,7 +383,7 @@ const AddEditModal: React.FC<{
                   </View>
                 )}
 
-                {editMode.level === 'parish' && selectedCountyId && (
+                {(editMode.level === 'parish' || editMode.level === 'village') && selectedCountyId && (
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Select Subcounty *</Text>
                     <View style={styles.pickerContainer}>
@@ -361,7 +392,11 @@ const AddEditModal: React.FC<{
                           <TouchableOpacity
                             key={s.id}
                             style={[styles.pickerItem, selectedSubcountyId === s.id && styles.pickerItemSelected]}
-                            onPress={() => setSelectedSubcountyId(s.id)}
+                            onPress={() => {
+                              setSelectedSubcountyId(s.id);
+                              // Reset dependent selection
+                              setSelectedParishId('');
+                            }}
                           >
                             <Text style={[styles.pickerText, selectedSubcountyId === s.id && styles.pickerTextSelected]}>
                               {s.name}
