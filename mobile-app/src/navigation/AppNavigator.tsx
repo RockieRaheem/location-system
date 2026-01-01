@@ -9,11 +9,13 @@ import {
   AdminUnitEditorScreen,
   VersionHistoryScreen,
   AdminDashboardScreen,
+  ReadOnlyViewScreen,
 } from '../screens';
 import CountryConfigScreen from '../screens/CountryConfigScreen';
 
 export type RootStackParamList = {
   Login: undefined;
+  ReadOnlyView: undefined;
   CountryList: undefined;
   CountryConfig: { country: any };
   LocationSearch: undefined;
@@ -29,13 +31,14 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="AdminDashboard"
+        initialRouteName="Login"
         screenOptions={{
           headerShown: false,
           cardStyle: { backgroundColor: '#f6f6f8' },
         }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="ReadOnlyView" component={ReadOnlyViewScreen} />
         <Stack.Screen name="CountryList" component={CountryListScreen} />
         <Stack.Screen name="CountryConfig" component={CountryConfigScreen} />
         <Stack.Screen name="LocationSearch" component={LocationSearchScreen} />

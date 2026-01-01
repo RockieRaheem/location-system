@@ -1,4 +1,5 @@
 export { default as LoginScreen } from './LoginScreen';
+export { default as ReadOnlyViewScreen } from './ReadOnlyViewScreen';
 export { default as CountryListScreen } from './CountryListScreen';
 export { default as LocationSearchScreen } from './LocationSearchScreen';
 export { default as AdminLevelsScreen } from './AdminLevelsScreen';
