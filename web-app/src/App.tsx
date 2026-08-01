@@ -1,12 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import { Header } from "./components/Header";
-import { Breadcrumbs } from "./components/Breadcrumbs";
 import { SearchBox } from "./components/SearchBox";
 import { SidePanel } from "./components/SidePanel";
 import { MapView } from "./components/MapView";
 import { uganda } from "./countries/uganda";
 import { themeFromFlag } from "./theme";
-import { getDistrictMap, polygonNameFor } from "./lib/geo";
+import { getDistrictMap } from "./lib/geo";
 import { cloneData, buildSearchIndexes } from "./lib/uganda";
 import {
   addDistrict,
@@ -113,6 +112,7 @@ export default function App() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [mapExpanded, setMapExpanded] = useState(false);
 
   const indexes = useMemo(() => buildSearchIndexes(data), [data]);
   const polygonCount = useMemo(() => getDistrictMap().size, []);
@@ -259,41 +259,6 @@ export default function App() {
     setSelection({ district: districtName });
   }
 
-  const crumbs = selection
-    ? [
-        ...(selection.subcounty
-          ? [{ label: selection.district, onClick: () => setSelection({ district: selection.district }) }]
-          : []),
-        ...(selection.parish
-          ? [
-              {
-                label: selection.subcounty!,
-                onClick: () =>
-                  setSelection({ district: selection.district, subcounty: selection.subcounty }),
-              },
-            ]
-          : []),
-        ...(selection.village
-          ? [
-              {
-                label: selection.parish!,
-                onClick: () =>
-                  setSelection({
-                    district: selection.district,
-                    subcounty: selection.subcounty,
-                    parish: selection.parish,
-                  }),
-              },
-            ]
-          : []),
-        ...(selection.district && !selection.subcounty
-          ? [{ label: selection.district, onClick: () => {} }]
-          : []),
-      ]
-    : [];
-
-  const selectedPolygon = selection ? polygonNameFor(selection.district, getDistrictMap()) : null;
-
   return (
     <div className="flex h-screen flex-col bg-[#f7f7f5] text-gray-900">
       <Header
@@ -356,46 +321,8 @@ export default function App() {
         </div>
       </Header>
 
-      <Breadcrumbs crumbs={crumbs} onReset={() => setSelection(null)} />
-
-      <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="relative min-h-[45vh] flex-1">
-          <MapView
-            theme={theme}
-            center={uganda.map.center}
-            zoom={uganda.map.zoom}
-            selection={selection}
-            onSelectDistrict={onMapSelect}
-            onReset={() => setSelection(null)}
-          />
-          {selectedPolygon && selection && (
-            <div className="pointer-events-none absolute left-3 top-3 max-w-[280px] rounded-lg bg-white/95 px-3 py-1.5 text-xs shadow">
-              <div>
-                <span className="font-semibold text-black">Selected:</span>{" "}
-                <span className="font-medium text-[#D90000]">
-                  {selection.village ?? selection.parish ?? selection.subcounty ?? selection.district}
-                </span>
-              </div>
-              {(selection.subcounty || selection.parish || selection.village) && (
-                <div className="mt-0.5 text-gray-500">
-                  {[selection.district, selection.subcounty, selection.parish, selection.village]
-                    .filter(Boolean)
-                    .join(" › ")}
-                </div>
-              )}
-              {selection.district !== selectedPolygon && (
-                <div className="mt-0.5 text-gray-400">map shows: {selectedPolygon} (district centre)</div>
-              )}
-              {(selection.parish || selection.village) && (
-                <div className="mt-0.5 text-gray-400">
-                  Map shows the subcounty boundary; the exact point isn&apos;t in this dataset.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="h-[45vh] w-full shrink-0 border-t border-black/10 lg:h-auto lg:w-[400px] lg:border-l lg:border-t-0">
+      <div className="relative min-h-0 flex-1">
+        <div className="mx-auto h-full w-full max-w-2xl">
           <SidePanel
             country={uganda}
             theme={theme}
@@ -407,6 +334,22 @@ export default function App() {
             onRename={handleRename}
             onAddChild={handleAddChild}
             onDelete={handleDelete}
+          />
+        </div>
+
+        <div
+          className={`absolute z-20 overflow-hidden rounded-xl border border-black/10 bg-white shadow-2xl transition-all ${
+            mapExpanded ? "bottom-4 left-4 right-4 top-16" : "bottom-4 left-4 h-64 w-72"
+          }`}
+        >
+          <MapView
+            theme={theme}
+            center={uganda.map.center}
+            zoom={uganda.map.zoom}
+            selection={selection}
+            expanded={mapExpanded}
+            onToggleExpanded={() => setMapExpanded((v) => !v)}
+            onSelectDistrict={onMapSelect}
           />
         </div>
       </div>

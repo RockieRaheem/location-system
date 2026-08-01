@@ -222,8 +222,16 @@ export function SidePanel({
     }
   }
 
+  function goUp() {
+    if (!selection) return;
+    if (selection.village) onSelect(3, selection.parish!);
+    else if (selection.parish) onSelect(2, selection.subcounty!);
+    else if (selection.subcounty) onSelect(1, selection.district);
+    else onReset();
+  }
+
   return (
-    <aside className="flex h-full w-full flex-col border-r border-black/10 bg-white">
+    <aside className="flex h-full w-full flex-col rounded-xl border border-black/10 bg-white shadow-sm">
       <div className="border-b border-black/10 px-4 py-3" style={{ background: theme.primarySoft }}>
         {editing ? (
           <div className="flex items-center gap-2">
@@ -269,21 +277,63 @@ export function SidePanel({
                 </svg>
               </IconButton>
             )}
-            {depth > 0 && (
-              <button
-                type="button"
-                onClick={onReset}
-                className="ml-auto shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold text-gray-500 transition hover:bg-black/5 hover:text-black"
-              >
-                Reset
-              </button>
-            )}
           </div>
         )}
         {isAdmin && (
           <p className="mt-1 text-[11px] text-gray-500">
             <span className="font-semibold text-[#D90000]">Admin mode</span>
           </p>
+        )}
+        {!editing && depth > 0 && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={goUp}
+              className="shrink-0 rounded-md bg-black/5 px-2 py-1 text-xs font-semibold text-gray-700 transition hover:bg-black/10"
+              title={depth > 1 ? `Back to ${country.levels[depth - 2].label.toLowerCase()}` : "Back to all districts"}
+            >
+              ← Back
+            </button>
+            <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto text-[11px] text-gray-500">
+              <button
+                type="button"
+                onClick={onReset}
+                className="shrink-0 font-semibold text-gray-400 transition hover:text-black"
+              >
+                All districts
+              </button>
+              {depth >= 2 && <span className="shrink-0 text-gray-300">›</span>}
+              {depth >= 2 && (
+                <button
+                  type="button"
+                  onClick={() => onSelect(1, selection!.district)}
+                  className="shrink-0 truncate font-medium transition hover:text-black"
+                >
+                  {selection!.district}
+                </button>
+              )}
+              {depth >= 3 && <span className="shrink-0 text-gray-300">›</span>}
+              {depth >= 3 && (
+                <button
+                  type="button"
+                  onClick={() => onSelect(2, selection!.subcounty!)}
+                  className="shrink-0 truncate font-medium transition hover:text-black"
+                >
+                  {selection!.subcounty}
+                </button>
+              )}
+              {depth >= 4 && <span className="shrink-0 text-gray-300">›</span>}
+              {depth >= 4 && (
+                <button
+                  type="button"
+                  onClick={() => onSelect(3, selection!.parish!)}
+                  className="shrink-0 truncate font-medium transition hover:text-black"
+                >
+                  {selection!.parish}
+                </button>
+              )}
+            </nav>
+          </div>
         )}
       </div>
 

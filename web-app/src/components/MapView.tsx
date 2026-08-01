@@ -28,8 +28,9 @@ interface Props {
   center: [number, number];
   zoom: number;
   selection: Selection | null;
+  expanded: boolean;
+  onToggleExpanded: () => void;
   onSelectDistrict: (name: string) => void;
-  onReset: () => void;
 }
 
 function selectionKey(sel: Selection | null): string {
@@ -37,7 +38,15 @@ function selectionKey(sel: Selection | null): string {
   return `${sel.district}|${sel.subcounty ?? ""}|${sel.parish ?? ""}|${sel.village ?? ""}`;
 }
 
-export function MapView({ theme, center, zoom, selection, onSelectDistrict, onReset }: Props) {
+export function MapView({
+  theme,
+  center,
+  zoom,
+  selection,
+  expanded,
+  onToggleExpanded,
+  onSelectDistrict,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const layerRef = useRef<VectorLayer<VectorSource> | null>(null);
@@ -187,7 +196,7 @@ export function MapView({ theme, center, zoom, selection, onSelectDistrict, onRe
         minZoom: 5.5,
         maxZoom: 15,
       }),
-      controls: defaultControls({ attribution: true, rotate: false }),
+      controls: defaultControls({ attribution: true, rotate: false, zoom: false }),
     });
     mapRef.current = map;
 
@@ -292,16 +301,77 @@ export function MapView({ theme, center, zoom, selection, onSelectDistrict, onRe
     markerLayer.changed();
   }, [key]);
 
+  function zoomBy(delta: number) {
+    const view = mapRef.current?.getView();
+    if (!view) return;
+    const z = view.getZoom();
+    if (z != null) view.animate({ zoom: Math.min(15, Math.max(5.5, z + delta)), duration: 200 });
+  }
+
+  function fitCountry() {
+    const map = mapRef.current;
+    if (map && countryExtentRef.current) {
+      map.getView().fit(countryExtentRef.current, {
+        padding: [30, 30, 30, 30],
+        maxZoom: 8,
+        duration: 300,
+      });
+    }
+  }
+
+  const sel = selection;
+  const pathParts = sel
+    ? [sel.district, sel.subcounty, sel.parish, sel.village].filter(Boolean)
+    : [];
+
   return (
     <div className="absolute inset-0">
       <div ref={containerRef} className="absolute inset-0" />
+      <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={() => zoomBy(1)}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-black/10 bg-white text-base font-bold text-gray-700 shadow hover:bg-black/5"
+          title="Zoom in"
+          aria-label="Zoom in"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={() => zoomBy(-1)}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-black/10 bg-white text-base font-bold text-gray-700 shadow hover:bg-black/5"
+          title="Zoom out"
+          aria-label="Zoom out"
+        >
+          −
+        </button>
+        <button
+          type="button"
+          onClick={fitCountry}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-black/10 bg-white text-sm text-gray-700 shadow hover:bg-black/5"
+          title="View all of Uganda"
+          aria-label="View all of Uganda"
+        >
+          ⟲
+        </button>
+      </div>
       <button
         type="button"
-        onClick={onReset}
-        className="absolute right-3 top-3 z-10 rounded-md border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow transition hover:bg-black/5"
+        onClick={onToggleExpanded}
+        className="absolute right-2 top-2 z-10 rounded-md border border-black/10 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 shadow hover:bg-black/5"
+        title={expanded ? "Minimize map" : "Expand map"}
       >
-        ⟲ View all of Uganda
+        {expanded ? "Minimize" : "Expand"}
       </button>
+      {sel && pathParts.length > 0 && (
+        <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-10 truncate rounded-md bg-white/95 px-2 py-1 text-[11px] font-medium text-gray-700 shadow">
+          <span className="font-semibold text-[#D90000]">{pathParts[pathParts.length - 1]}</span>
+          {pathParts.length > 1 && (
+            <span className="ml-1 text-gray-500">in {pathParts.slice(0, -1).join(" › ")}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
