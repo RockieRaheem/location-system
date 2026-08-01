@@ -1,0 +1,30 @@
+{
+  "name": "location-system-web",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Map-first multi-country administrative hierarchy platform (v2)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "data:ug": "node scripts/build-ug-data.mjs"
+  },
+  "dependencies": {
+    "ol": "^10.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@turf/simplify": "^7.2.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.5"
+  }
+}

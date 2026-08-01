@@ -1,0 +1,6 @@
+node_modules
+dist
+src/data/uganda.json
+src/data/ug_districts.geojson
+src/data/ug_districts_raw.geojson
+*.local
