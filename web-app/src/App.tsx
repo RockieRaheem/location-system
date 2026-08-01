@@ -338,8 +338,8 @@ export default function App() {
         </div>
 
         <div
-          className={`absolute z-20 overflow-hidden rounded-xl border border-black/10 bg-white shadow-2xl transition-all ${
-            mapExpanded ? "bottom-4 left-4 right-4 top-16" : "bottom-4 left-4 h-64 w-72"
+          className={`fixed z-40 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl transition-all ${
+            mapExpanded ? "inset-4" : "bottom-4 right-4 h-72 w-80"
           }`}
         >
           <MapView
