@@ -1,40 +1,52 @@
-import data from "../data/uganda.json";
+import baseData from "../data/uganda.json";
 import type { SearchResult, UgandaData } from "../types";
 
-export const ugData = data as UgandaData;
+export const ugBaseData = baseData as UgandaData;
 
-export function getDistricts(): string[] {
-  return ugData.districts;
+export function cloneData(): UgandaData {
+  return structuredClone(ugBaseData);
 }
 
-export function getSubcounties(district: string): string[] {
-  return ugData.subcounties[district.toUpperCase()] ?? [];
+export function getDistricts(data: UgandaData): string[] {
+  return data.districts;
 }
 
-export function getParishes(district: string, subcounty: string): string[] {
-  return ugData.parishes[`${district.toUpperCase()}||${subcounty.toUpperCase()}`] ?? [];
+export function getSubcounties(data: UgandaData, district: string): string[] {
+  return data.subcounties[district.toUpperCase()] ?? [];
 }
 
-export function getVillages(district: string, subcounty: string, parish: string): string[] {
+export function getParishes(
+  data: UgandaData,
+  district: string,
+  subcounty: string,
+): string[] {
+  return data.parishes[`${district.toUpperCase()}||${subcounty.toUpperCase()}`] ?? [];
+}
+
+export function getVillages(
+  data: UgandaData,
+  district: string,
+  subcounty: string,
+  parish: string,
+): string[] {
   return (
-    ugData.villages[
+    data.villages[
       `${district.toUpperCase()}||${subcounty.toUpperCase()}||${parish.toUpperCase()}`
     ] ?? []
   );
 }
 
-export function districtStats(district: string): {
-  subcounties: number;
-  parishes: number;
-  villages: number;
-} {
-  const subs = getSubcounties(district);
+export function districtStats(
+  data: UgandaData,
+  district: string,
+): { subcounties: number; parishes: number; villages: number } {
+  const subs = getSubcounties(data, district);
   let parishes = 0;
   let villages = 0;
   for (const sc of subs) {
-    const ps = getParishes(district, sc);
+    const ps = getParishes(data, district, sc);
     parishes += ps.length;
-    for (const p of ps) villages += getVillages(district, sc, p).length;
+    for (const p of ps) villages += getVillages(data, district, sc, p).length;
   }
   return { subcounties: subs.length, parishes, villages };
 }
@@ -46,30 +58,42 @@ function score(name: string, q: string): number {
   return 0;
 }
 
-const subcountyIndex = new Map<string, { name: string; district: string }>();
-for (const [key, list] of Object.entries(ugData.subcounties)) {
-  const d = key.split("||")[0];
-  for (const name of list) subcountyIndex.set(`${d}||${name}`, { name, district: d });
+export interface SearchIndexes {
+  subcounty: Map<string, { name: string; district: string }>;
+  parish: Map<string, { name: string; district: string; subcounty: string }>;
+  village: Map<string, SearchResult>;
 }
 
-const parishIndex = new Map<string, { name: string; district: string; subcounty: string }>();
-for (const [key, list] of Object.entries(ugData.parishes)) {
-  const [d, sc] = key.split("||");
-  for (const name of list) parishIndex.set(`${d}||${sc}||${name}`, { name, district: d, subcounty: sc });
-}
-
-const villageIndex = new Map<string, SearchResult>();
-for (const [key, list] of Object.entries(ugData.villages)) {
-  const [d, sc, p] = key.split("||");
-  for (const name of list) {
-    villageIndex.set(`${d}||${sc}||${p}||${name}`, {
-      name,
-      level: 4,
-      district: d,
-      subcounty: sc,
-      parish: p,
-    });
+export function buildSearchIndexes(data: UgandaData): SearchIndexes {
+  const subcounty = new Map<string, { name: string; district: string }>();
+  for (const [key, list] of Object.entries(data.subcounties)) {
+    const d = key.split("||")[0];
+    for (const name of list) subcounty.set(`${d}||${name}`, { name, district: d });
   }
+
+  const parish = new Map<string, { name: string; district: string; subcounty: string }>();
+  for (const [key, list] of Object.entries(data.parishes)) {
+    const [d, sc] = key.split("||");
+    for (const name of list) {
+      parish.set(`${d}||${sc}||${name}`, { name, district: d, subcounty: sc });
+    }
+  }
+
+  const village = new Map<string, SearchResult>();
+  for (const [key, list] of Object.entries(data.villages)) {
+    const [d, sc, p] = key.split("||");
+    for (const name of list) {
+      village.set(`${d}||${sc}||${p}||${name}`, {
+        name,
+        level: 4,
+        district: d,
+        subcounty: sc,
+        parish: p,
+      });
+    }
+  }
+
+  return { subcounty, parish, village };
 }
 
 interface Scored {
@@ -77,25 +101,30 @@ interface Scored {
   score: number;
 }
 
-export function search(query: string, limit = 30): SearchResult[] {
+export function search(
+  data: UgandaData,
+  indexes: SearchIndexes,
+  query: string,
+  limit = 30,
+): SearchResult[] {
   const q = query.trim().toUpperCase();
   if (!q) return [];
 
   const results: Scored[] = [];
 
-  for (const name of ugData.districts) {
+  for (const name of data.districts) {
     const s = score(name, q);
     if (s > 0) results.push({ result: { name, level: 1, district: name }, score: s });
   }
 
-  for (const { name, district } of subcountyIndex.values()) {
+  for (const { name, district } of indexes.subcounty.values()) {
     const s = score(name, q);
     if (s > 0) {
       results.push({ result: { name, level: 2, district, subcounty: name }, score: s });
     }
   }
 
-  for (const { name, district, subcounty } of parishIndex.values()) {
+  for (const { name, district, subcounty } of indexes.parish.values()) {
     const s = score(name, q);
     if (s > 0) {
       results.push({
@@ -106,7 +135,7 @@ export function search(query: string, limit = 30): SearchResult[] {
   }
 
   let villageHits = 0;
-  for (const r of villageIndex.values()) {
+  for (const r of indexes.village.values()) {
     const s = score(r.name, q);
     if (s > 0) {
       if (villageHits++ >= limit * 4) break;

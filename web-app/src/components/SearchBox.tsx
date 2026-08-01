@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { CountryConfig, SearchResult } from "../types";
-import { search } from "../lib/uganda";
+import type { CountryConfig, SearchResult, UgandaData } from "../types";
+import { search, type SearchIndexes } from "../lib/uganda";
 
 interface Props {
   country: CountryConfig;
+  data: UgandaData;
+  indexes: SearchIndexes;
   onSelect: (result: SearchResult) => void;
 }
 
@@ -14,7 +16,7 @@ const LEVEL_LABEL: Record<number, string> = {
   4: "Village",
 };
 
-export function SearchBox({ country, onSelect }: Props) {
+export function SearchBox({ country, data, indexes, onSelect }: Props) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -24,7 +26,7 @@ export function SearchBox({ country, onSelect }: Props) {
   useEffect(() => {
     const id = setTimeout(() => {
       if (query.trim()) {
-        setResults(search(query, 20));
+        setResults(search(data, indexes, query, 20));
         setOpen(true);
       } else {
         setResults([]);
@@ -32,7 +34,7 @@ export function SearchBox({ country, onSelect }: Props) {
       }
     }, 120);
     return () => clearTimeout(id);
-  }, [query]);
+  }, [query, data, indexes]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
