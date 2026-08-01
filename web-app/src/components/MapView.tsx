@@ -200,6 +200,14 @@ export function MapView({
     });
     mapRef.current = map;
 
+    if (countryExtentRef.current) {
+      map.getView().fit(countryExtentRef.current, {
+        padding: [20, 20, 20, 20],
+        maxZoom: 8,
+        duration: 0,
+      });
+    }
+
     const handleMove = (e: { map: Map; coordinate: number[] }) => {
       const hit = map.forEachFeatureAtPixel(
         map.getPixelFromCoordinate(e.coordinate),

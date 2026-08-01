@@ -231,7 +231,7 @@ export function SidePanel({
   }
 
   return (
-    <aside className="flex h-full w-full flex-col rounded-xl border border-black/10 bg-white shadow-sm">
+    <aside className="flex h-full w-full flex-col bg-white">
       <div className="border-b border-black/10 px-4 py-3" style={{ background: theme.primarySoft }}>
         {editing ? (
           <div className="flex items-center gap-2">

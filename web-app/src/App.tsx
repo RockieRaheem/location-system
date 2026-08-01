@@ -322,20 +322,18 @@ export default function App() {
       </Header>
 
       <div className="relative min-h-0 flex-1">
-        <div className="mx-auto h-full w-full max-w-2xl">
-          <SidePanel
-            country={uganda}
-            theme={theme}
-            data={data}
-            selection={selection}
-            onSelect={selectByLevel}
-            onReset={() => setSelection(null)}
-            isAdmin={isAdmin}
-            onRename={handleRename}
-            onAddChild={handleAddChild}
-            onDelete={handleDelete}
-          />
-        </div>
+        <SidePanel
+          country={uganda}
+          theme={theme}
+          data={data}
+          selection={selection}
+          onSelect={selectByLevel}
+          onReset={() => setSelection(null)}
+          isAdmin={isAdmin}
+          onRename={handleRename}
+          onAddChild={handleAddChild}
+          onDelete={handleDelete}
+        />
 
         <div
           className={`fixed z-40 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl transition-all ${
