@@ -13,6 +13,7 @@ interface Props {
   onSearchSelect: (result: SearchResult) => void;
   onMapSelect: (district: string) => void;
   onClearSelection: () => void;
+  onOpenInExplorer: (district: string, subcounty?: string) => void;
 }
 
 export function MapPage({
@@ -24,6 +25,7 @@ export function MapPage({
   onSearchSelect,
   onMapSelect,
   onClearSelection,
+  onOpenInExplorer,
 }: Props) {
   return (
     <div className="relative min-h-0 flex-1">
@@ -35,8 +37,10 @@ export function MapPage({
         center={country.map.center}
         zoom={country.map.zoom}
         selection={selection}
+        data={data}
         onSelectDistrict={onMapSelect}
         onClearSelection={onClearSelection}
+        onOpenInExplorer={onOpenInExplorer}
       />
     </div>
   );

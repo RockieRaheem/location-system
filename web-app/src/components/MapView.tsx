@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
@@ -12,10 +12,11 @@ import { Style, Fill, Stroke, Text, Circle as CircleStyle } from "ol/style";
 import Overlay from "ol/Overlay";
 import { defaults as defaultControls } from "ol/control";
 import { createEmpty, extend as extendExtent, getCenter } from "ol/extent";
-import { fromLonLat } from "ol/proj";
+import { fromLonLat, toLonLat } from "ol/proj";
 import type Geometry from "ol/geom/Geometry";
 import type { Theme } from "../theme";
-import type { Selection } from "../types";
+import type { Selection, UgandaData } from "../types";
+import { getParishes, getVillages } from "../lib/uganda";
 import {
   getDistrictMap,
   getSubcountyMap,
@@ -28,8 +29,18 @@ interface Props {
   center: [number, number];
   zoom: number;
   selection: Selection | null;
+  data: UgandaData;
   onSelectDistrict: (name: string) => void;
   onClearSelection: () => void;
+  onOpenInExplorer: (district: string, subcounty?: string) => void;
+}
+
+interface PinInfo {
+  longitude: number;
+  latitude: number;
+  district?: string;
+  subcounty?: string;
+  error?: string;
 }
 
 function selectionKey(sel: Selection | null): string {
@@ -42,20 +53,27 @@ export function MapView({
   center,
   zoom,
   selection,
+  data,
   onSelectDistrict,
   onClearSelection,
+  onOpenInExplorer,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const layerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const subcountyLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const markerLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const pinLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const tooltipRef = useRef<Overlay | null>(null);
   const countryExtentRef = useRef<ReturnType<typeof createEmpty> | null>(null);
   const selectionRef = useRef<Selection | null>(selection);
   const hoverRef = useRef<string | null>(null);
+  const [pinMode, setPinMode] = useState(false);
+  const [pin, setPin] = useState<PinInfo | null>(null);
+  const pinModeRef = useRef(pinMode);
 
   selectionRef.current = selection;
+  pinModeRef.current = pinMode;
 
   useEffect(() => {
     const tooltipEl = document.createElement("div");
@@ -172,6 +190,20 @@ export function MapView({
     });
     markerLayerRef.current = markerLayer;
 
+    const pinSource = new VectorSource();
+    const pinLayer = new VectorLayer({
+      source: pinSource,
+      zIndex: 30,
+      style: new Style({
+        image: new CircleStyle({
+          radius: 10,
+          fill: new Fill({ color: "#D90000" }),
+          stroke: new Stroke({ color: "#ffffff", width: 3.5 }),
+        }),
+      }),
+    });
+    pinLayerRef.current = pinLayer;
+
     const map = new Map({
       target: containerRef.current ?? undefined,
       layers: [
@@ -186,6 +218,7 @@ export function MapView({
         layer,
         subcountyLayer,
         markerLayer,
+        pinLayer,
       ],
       overlays: [tooltip],
       view: new View({
@@ -224,6 +257,10 @@ export function MapView({
       }
     };
     const handleClick = (e: { coordinate: number[] }) => {
+      if (pinModeRef.current) {
+        dropPinAt(e.coordinate);
+        return;
+      }
       const hit = map.forEachFeatureAtPixel(
         map.getPixelFromCoordinate(e.coordinate),
         (f) => f.get("district") as string,
@@ -252,12 +289,12 @@ export function MapView({
     const markerLayer = markerLayerRef.current;
     if (!map || !layer || !subcountyLayer || !markerLayer || !countryExtentRef.current) return;
 
+    setPin(null);
     markerLayer.getSource()?.clear();
 
     const sel = selectionRef.current;
     let target: Geometry | undefined;
     let label = "";
-
     if (sel && sel.district) {
       if (sel.subcounty) {
         const subKey = subcountyKeyFor(sel.district, sel.subcounty, getSubcountyMap());
@@ -325,6 +362,96 @@ export function MapView({
     }
   }
 
+  function reverseGeocode(coord: number[]): Pick<PinInfo, "district" | "subcounty"> | null {
+    const subFeatures = subcountyLayerRef.current?.getSource()?.getFeatures() ?? [];
+    for (const f of subFeatures) {
+      if (f.getGeometry()?.intersectsCoordinate(coord)) {
+        return { district: f.get("district") as string, subcounty: f.get("subcounty") as string };
+      }
+    }
+    const distFeatures = layerRef.current?.getSource()?.getFeatures() ?? [];
+    for (const f of distFeatures) {
+      if (f.getGeometry()?.intersectsCoordinate(coord)) {
+        return { district: f.get("district") as string };
+      }
+    }
+    return null;
+  }
+
+  function dropPinAt(coord: number[]) {
+    const map = mapRef.current;
+    if (!map) return;
+    const [longitude, latitude] = toLonLat(coord);
+    const hit = reverseGeocode(coord);
+    setPin(hit ? { longitude, latitude, ...hit } : { longitude, latitude });
+    const view = map.getView();
+    const z = view.getZoom() ?? 8;
+    view.animate({ center: coord, zoom: Math.min(15, Math.max(z, 11)), duration: 400 });
+  }
+
+  function locateMe() {
+    if (!("geolocation" in navigator)) {
+      setPin({ longitude: 0, latitude: 0, error: "Geolocation is not supported by this browser." });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { longitude, latitude } = pos.coords;
+        dropPinAt(fromLonLat([longitude, latitude]));
+      },
+      (err) => {
+        setPin({
+          longitude: 0,
+          latitude: 0,
+          error:
+            err.code === 1
+              ? "Location access denied. Drop a pin on the map instead."
+              : "Could not get your location. Try again or drop a pin on the map.",
+        });
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 },
+    );
+  }
+
+  function clearPin() {
+    setPin(null);
+    setPinMode(false);
+  }
+
+  useEffect(() => {
+    const layer = pinLayerRef.current;
+    if (!layer) return;
+    layer.getSource()?.clear();
+    if (pin && !pin.error) {
+      layer.getSource()?.addFeature(new Feature({ geometry: new Point(fromLonLat([pin.longitude, pin.latitude])) }));
+    }
+  }, [pin]);
+
+  useEffect(() => {
+    const el = mapRef.current?.getTargetElement();
+    if (el) el.style.cursor = pinMode ? "crosshair" : "";
+  }, [pinMode]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPinMode(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const subCounts = useMemo(() => {
+    if (!pin?.subcounty || !pin.district || pin.error) return null;
+    const district = pin.district;
+    const subcounty = pin.subcounty;
+    const parishes = getParishes(data, district, subcounty);
+    const villages = parishes.reduce(
+      (n, p) => n + getVillages(data, district, subcounty, p).length,
+      0,
+    );
+    return { parishes: parishes.length, villages };
+  }, [pin, data]);
+
   const sel = selection;
   const pathParts = sel
     ? [sel.district, sel.subcounty, sel.parish, sel.village].filter(Boolean)
@@ -334,7 +461,9 @@ export function MapView({
     <div className="relative h-full w-full overflow-hidden">
       <div ref={containerRef} className="absolute inset-0" />
       <div className="pointer-events-none absolute right-3 top-3 z-10 hidden rounded-md bg-black/55 px-2.5 py-1.5 text-[11px] font-medium text-white shadow sm:block">
-        Click a district to select it · search above to zoom to a place
+        {pinMode
+          ? "Pin mode: click the map to drop a pin"
+          : "Click a district to select it · search above to zoom to a place"}
       </div>
       <div className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-md">
         <button
@@ -372,6 +501,35 @@ export function MapView({
             <path d="M2 4.5h4V1M10 7.5H6V11" />
           </svg>
         </button>
+        <div className="h-px bg-black/10" />
+        <button
+          type="button"
+          onClick={() => setPinMode((v) => !v)}
+          className={`flex h-7 w-7 items-center justify-center transition ${
+            pinMode ? "bg-[#D90000] text-white" : "text-gray-700 hover:bg-black/5 hover:text-black"
+          }`}
+          title={pinMode ? "Exit pin mode" : "Drop a pin to find its district/subcounty"}
+          aria-label="Drop a pin"
+          aria-pressed={pinMode}
+        >
+          <svg viewBox="0 0 12 12" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 1.5c-1.8 0-3.2 1.4-3.2 3.1 0 2.3 3.2 5.9 3.2 5.9s3.2-3.6 3.2-5.9C9.2 2.9 7.8 1.5 6 1.5z" />
+            <circle cx="6" cy="4.6" r="1.1" />
+          </svg>
+        </button>
+        <div className="h-px bg-black/10" />
+        <button
+          type="button"
+          onClick={locateMe}
+          className="flex h-7 w-7 items-center justify-center text-gray-700 transition hover:bg-black/5 hover:text-black"
+          title="Find my district and subcounty (GPS)"
+          aria-label="Find my location"
+        >
+          <svg viewBox="0 0 12 12" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <circle cx="6" cy="6" r="2.2" />
+            <path d="M6 1v1.6M6 9.4V11M1 6h1.6M9.4 6H11M2.2 2.2l1.2 1.2M8.6 8.6l1.2 1.2M9.8 2.2L8.6 3.4M3.4 8.6l-1.2 1.2" />
+          </svg>
+        </button>
       </div>
       {sel && pathParts.length > 0 && (
         <div className="absolute bottom-3 left-3 z-10 flex max-w-[calc(100%-8rem)] items-center gap-2 rounded-lg border border-black/10 bg-white/95 px-3 py-1.5 shadow-md">
@@ -392,6 +550,59 @@ export function MapView({
               <path d="M3 3l6 6M9 3l-6 6" />
             </svg>
           </button>
+        </div>
+      )}
+      {pin && (
+        <div className="absolute bottom-3 right-3 z-20 w-72 overflow-hidden rounded-lg border border-black/10 bg-white shadow-xl">
+          <div className="flex items-center justify-between bg-black px-3 py-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-white">
+              {pin.error ? "Location" : pin.district ? "You are here" : "Dropped pin"}
+            </span>
+            <button
+              type="button"
+              onClick={clearPin}
+              className="flex h-5 w-5 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+              title="Clear pin"
+              aria-label="Clear pin"
+            >
+              <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M3 3l6 6M9 3l-6 6" />
+              </svg>
+            </button>
+          </div>
+          <div className="px-3 py-2">
+            {pin.error ? (
+              <p className="text-xs text-gray-600">{pin.error}</p>
+            ) : pin.district ? (
+              <>
+                <p className="text-sm font-bold text-black">
+                  {pin.district}
+                  {pin.subcounty ? ` › ${pin.subcounty}` : ""}
+                </p>
+                {subCounts && (
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    {subCounts.parishes} parishes · {subCounts.villages} villages in {pin.subcounty}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onOpenInExplorer(pin.district!, pin.subcounty)}
+                  className="mt-2 rounded-md bg-[#D90000] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#B00000]"
+                >
+                  Open in Explorer
+                </button>
+              </>
+            ) : (
+              <p className="text-xs text-gray-600">
+                No known district or subcounty boundary covers this point.
+              </p>
+            )}
+            {!pin.error && (
+              <p className="mt-1.5 border-t border-black/5 pt-1.5 font-mono text-[10px] text-gray-400">
+                {pin.latitude.toFixed(4)}, {pin.longitude.toFixed(4)}
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

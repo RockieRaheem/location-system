@@ -6,7 +6,7 @@ import { MapPage } from "./components/MapPage";
 import { uganda } from "./countries/uganda";
 import { themeFromFlag } from "./theme";
 import { getDistrictMap } from "./lib/geo";
-import { useHashRoute } from "./lib/router";
+import { useHashRoute, navigate } from "./lib/router";
 import { cloneData, buildSearchIndexes } from "./lib/uganda";
 import {
   addDistrict,
@@ -261,6 +261,11 @@ export default function App() {
     setSelection({ district: districtName });
   }
 
+  function handleOpenInExplorer(district: string, subcounty?: string) {
+    setSelection(subcounty ? { district, subcounty } : { district });
+    navigate("/");
+  }
+
   return (
     <div className="flex h-screen flex-col bg-[#f7f7f5] text-gray-900">
       <Header
@@ -334,6 +339,7 @@ export default function App() {
           onSearchSelect={onSearchSelect}
           onMapSelect={onMapSelect}
           onClearSelection={() => setSelection(null)}
+          onOpenInExplorer={handleOpenInExplorer}
         />
       ) : (
         <div className="relative min-h-0 flex-1">
