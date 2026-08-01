@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Header } from "./components/Header";
 import { Breadcrumbs } from "./components/Breadcrumbs";
 import { SearchBox } from "./components/SearchBox";
@@ -28,6 +28,7 @@ import {
   saveSnapshot,
   clearSnapshot,
   downloadData,
+  parseImportedData,
 } from "./lib/storage";
 import type { UgandaData, SearchResult, Selection } from "./types";
 
@@ -115,6 +116,7 @@ export default function App() {
 
   const indexes = useMemo(() => buildSearchIndexes(data), [data]);
   const polygonCount = useMemo(() => getDistrictMap().size, []);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   function applyEdit(mutator: (d: UgandaData) => UgandaData) {
     setData((prev) => {
@@ -194,6 +196,28 @@ export default function App() {
 
   function handleExport() {
     downloadData(data, "uganda-admin.json");
+  }
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const next = parseImportedData(String(reader.result));
+        setData(next);
+        saveSnapshot(next);
+        setSelection(null);
+        const c = next.meta.counts;
+        window.alert(
+          `Imported ${c.districts} districts, ${c.subcounties} subcounties, ${c.parishes} parishes, ${c.villages} villages.`,
+        );
+      } catch (err) {
+        window.alert(`Import failed: ${(err as Error).message}`);
+      }
+    };
+    reader.readAsText(file);
   }
 
   function selectByLevel(level: number, name: string) {
@@ -280,6 +304,21 @@ export default function App() {
         <div className="flex items-center gap-2">
           {isAdmin ? (
             <>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".json,application/json"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <button
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                className="shrink-0 rounded-md border border-black/15 px-3 py-2 text-xs font-bold text-black transition hover:bg-black/5"
+                title="Load an edited data JSON file"
+              >
+                Import
+              </button>
               <button
                 type="button"
                 onClick={handleExport}

@@ -51,11 +51,29 @@ export function districtStats(
   return { subcounties: subs.length, parishes, villages };
 }
 
+const DISTRICT_ALIASES: Record<string, string> = {
+  LUWERO: "LUWEERO",
+};
+
+function variantsOf(name: string): string[] {
+  const variants = [name];
+  for (const [alias, canonical] of Object.entries(DISTRICT_ALIASES)) {
+    if (canonical === name) variants.push(alias);
+  }
+  return variants;
+}
+
 function score(name: string, q: string): number {
   if (name === q) return 100;
   if (name.startsWith(q)) return 50;
   if (name.includes(q)) return 10;
   return 0;
+}
+
+function bestScore(name: string, q: string): number {
+  let best = 0;
+  for (const v of variantsOf(name)) best = Math.max(best, score(v, q));
+  return best;
 }
 
 export interface SearchIndexes {
@@ -113,19 +131,19 @@ export function search(
   const results: Scored[] = [];
 
   for (const name of data.districts) {
-    const s = score(name, q);
+    const s = bestScore(name, q);
     if (s > 0) results.push({ result: { name, level: 1, district: name }, score: s });
   }
 
   for (const { name, district } of indexes.subcounty.values()) {
-    const s = score(name, q);
+    const s = bestScore(name, q);
     if (s > 0) {
       results.push({ result: { name, level: 2, district, subcounty: name }, score: s });
     }
   }
 
   for (const { name, district, subcounty } of indexes.parish.values()) {
-    const s = score(name, q);
+    const s = bestScore(name, q);
     if (s > 0) {
       results.push({
         result: { name, level: 3, district, subcounty, parish: name },
@@ -136,7 +154,7 @@ export function search(
 
   let villageHits = 0;
   for (const r of indexes.village.values()) {
-    const s = score(r.name, q);
+    const s = bestScore(r.name, q);
     if (s > 0) {
       if (villageHits++ >= limit * 4) break;
       results.push({ result: r, score: s });

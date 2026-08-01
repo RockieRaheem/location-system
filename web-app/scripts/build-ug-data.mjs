@@ -119,9 +119,46 @@ function buildUnits() {
     villages: villageArray,
   };
 
+  validateUnits(out);
   writeFileSync(join(SRC, "uganda.json"), JSON.stringify(out));
   console.log("uganda.json written", JSON.stringify(counts));
   return out;
+}
+
+function validateUnits(units) {
+  const problems = [];
+  const districts = new Set(units.districts);
+  for (const k of Object.keys(units.subcounties)) {
+    if (!districts.has(k)) problems.push(`subcounty key with unknown district: ${k}`);
+  }
+  for (const [k, list] of Object.entries(units.parishes)) {
+    const [d, sc] = k.split("||");
+    if (!districts.has(d) || !(units.subcounties[d] ?? []).includes(sc))
+      problems.push(`parish key with unknown parent: ${k}`);
+    if (list.length === 0) problems.push(`parish with no villages: ${k}`);
+  }
+  for (const [k, list] of Object.entries(units.villages)) {
+    const [d, sc, p] = k.split("||");
+    if (
+      !districts.has(d) ||
+      !(units.subcounties[d] ?? []).includes(sc) ||
+      !(units.parishes[`${d}||${sc}`] ?? []).includes(p)
+    )
+      problems.push(`village key with unknown parent: ${k}`);
+  }
+  for (const [k, list] of Object.entries(units.subcounties)) {
+    if (list.length === 0) problems.push(`subcounty with no parishes: ${k}`);
+  }
+  for (const d of units.districts) {
+    if (!(units.subcounties[d] ?? []).length) problems.push(`district with no subcounties: ${d}`);
+  }
+  if (problems.length) {
+    console.error(`DATA INTEGRITY FAILURES (${problems.length}):`);
+    for (const p of problems) console.error("  - " + p);
+    process.exitCode = 1;
+  } else {
+    console.log("Data integrity check passed: no orphan or empty units.");
+  }
 }
 
 async function buildBoundaries() {
