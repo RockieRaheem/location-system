@@ -25,9 +25,9 @@ interface Props {
 
 function StatChip({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-black/10 bg-white px-3 py-2">
-      <div className="text-lg font-bold text-black">{value.toLocaleString()}</div>
-      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500">{label}</div>
+    <div className="rounded-lg border border-black/10 bg-white px-2 py-1.5">
+      <div className="text-base font-bold leading-tight text-black">{value.toLocaleString()}</div>
+      <div className="text-[10px] font-medium uppercase tracking-wide text-gray-500">{label}</div>
     </div>
   );
 }
@@ -338,7 +338,7 @@ export function SidePanel({
       </div>
 
       {stats.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 border-b border-black/10 px-4 py-3">
+        <div className="grid grid-cols-4 gap-1.5 border-b border-black/10 px-4 py-2">
           {stats.map((s) => (
             <StatChip key={s.label} label={s.label} value={s.value} />
           ))}
