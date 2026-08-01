@@ -38,12 +38,14 @@ async function fetchWithRetry(url, tries = 3) {
   }
 }
 
-function ensureRawBoundary() {
+async function ensureRawBoundary() {
   if (existsSync(RAW_GEO_FILE)) return;
-  console.log("Downloading raw district boundaries...");
-  throw new Error(
-    `Missing ${RAW_GEO_FILE}. Download from ${RAW_GEO_URL} and place it there.`,
-  );
+  console.log(`Downloading district boundaries from ${RAW_GEO_URL} ...`);
+  const res = await fetchWithRetry(RAW_GEO_URL);
+  if (!res.ok) throw new Error(`Failed to download boundaries: ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  writeFileSync(RAW_GEO_FILE, buf);
+  console.log(`Saved raw boundaries (${(buf.length / 1e6).toFixed(1)} MB)`);
 }
 
 function buildUnits() {
@@ -122,9 +124,8 @@ function buildUnits() {
   return out;
 }
 
-function buildBoundaries() {
-  ensureRawBoundary();
-
+async function buildBoundaries() {
+  await ensureRawBoundary();
   const raw = JSON.parse(readFileSync(RAW_GEO_FILE, "utf8"));
   const features = [];
   const seen = new Set();
@@ -161,7 +162,7 @@ function buildBoundaries() {
 
 async function main() {
   const units = buildUnits();
-  const polygonNames = buildBoundaries();
+  const polygonNames = await buildBoundaries();
 
   const missing = units.districts.filter(
     (d) => !polygonNames.has(d) && !polygonNames.has(d.replace(/ CITY$/, "")),
