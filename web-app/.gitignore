@@ -3,4 +3,6 @@ dist
 src/data/uganda.json
 src/data/ug_districts.geojson
 src/data/ug_districts_raw.geojson
+src/data/ug_subcounties.geojson
+src/data/ug_subcounties_raw.geojson
 *.local

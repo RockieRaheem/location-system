@@ -10,6 +10,10 @@ const RAW_GEO_URL =
   "https://raw.githubusercontent.com/Geradav/Uganda-GIS/master/Districts_UG.geojson";
 const RAW_GEO_FILE = join(SRC, "ug_districts_raw.geojson");
 
+const UBOS_SUBCOUNTY_URL =
+  "https://raw.githubusercontent.com/has2k1/uganda-boundaries/main/geojson/subcounties.geojson";
+const RAW_SUBCOUNTY_FILE = join(SRC, "ug_subcounties_raw.geojson");
+
 const ALIASES = {
   KASANDA: "KASSANDA",
   LUWERO: "LUWEERO",
@@ -46,6 +50,105 @@ async function ensureRawBoundary() {
   const buf = Buffer.from(await res.arrayBuffer());
   writeFileSync(RAW_GEO_FILE, buf);
   console.log(`Saved raw boundaries (${(buf.length / 1e6).toFixed(1)} MB)`);
+}
+
+async function ensureRawSubcounties() {
+  if (existsSync(RAW_SUBCOUNTY_FILE)) return;
+  console.log(`Downloading UBOS 2024 subcounty boundaries from ${UBOS_SUBCOUNTY_URL} ...`);
+  const res = await fetchWithRetry(UBOS_SUBCOUNTY_URL);
+  if (!res.ok) throw new Error(`Failed to download subcounty boundaries: ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  writeFileSync(RAW_SUBCOUNTY_FILE, buf);
+  console.log(`Saved raw subcounty boundaries (${(buf.length / 1e6).toFixed(1)} MB)`);
+}
+
+function normSubcounty(name) {
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .replace(/'/g, "")
+    .replace(/_/g, " ")
+    .replace(/\s*\/\s*/g, " ")
+    .replace(/\s*-\s*/g, " ")
+    .replace(/\s*\.\s*/g, " ")
+    .replace(/\bTOWN COUNCIL\b/g, "")
+    .replace(/\bTOWN\b/g, "")
+    .replace(/\bCENTRAL DIVISION\b/g, " CENTRAL")
+    .replace(/\b(DIVISION|DIV|TC)\b/g, "")
+    .replace(/\bLC\d*\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildSubcounties(ecDistricts, ecSubcountiesMap) {
+  const raw = JSON.parse(readFileSync(RAW_SUBCOUNTY_FILE, "utf8"));
+  const districtSet = new Set(ecDistricts);
+
+  const ubosByDistrict = {};
+  for (const f of raw.features ?? []) {
+    const d = normDistrict(f.properties?.district ?? "");
+    if (!d || !districtSet.has(d)) continue;
+    (ubosByDistrict[d] ??= []).push(f);
+  }
+
+  const seen = new Set();
+  const features = [];
+  let covered = 0;
+
+  for (const [d, list] of Object.entries(ecSubcountiesMap)) {
+    for (const sc of list) {
+      const candidates = ubosByDistrict[d] ?? [];
+      const pool = candidates.filter(
+        (f) => normSubcounty(f.properties?.subcounty ?? "") === normSubcounty(sc),
+      );
+      let match = pool[0];
+      if (!match) {
+        const n = normSubcounty(sc);
+        if (n.length >= 4) {
+          match = candidates.find((f) => {
+            const m = normSubcounty(f.properties?.subcounty ?? "");
+            return m.length >= 4 && (m.includes(n) || n.includes(m));
+          });
+        }
+      }
+      if (!match) continue;
+      const featKey = `${d}||${sc}`;
+      if (seen.has(featKey)) continue;
+      seen.add(featKey);
+      const simplified = simplify(match, { tolerance: 0.008, highQuality: true });
+      features.push({
+        type: "Feature",
+        properties: {
+          district: d,
+          subcounty: sc,
+          name: String(match.properties.subcounty),
+        },
+        geometry: simplified.geometry,
+      });
+      covered++;
+    }
+  }
+
+  const out = {
+    type: "FeatureCollection",
+    features,
+    _meta: {
+      count: features.length,
+      coveredSubcounties: covered,
+      totalSubcounties: Object.keys(ecSubcountiesMap).length,
+      source: "Uganda Bureau of Statistics 2024 National Population and Housing Census (UBOS)",
+      license: "Public census material (UBOS)",
+    },
+  };
+
+  const json = JSON.stringify(out);
+  writeFileSync(join(SRC, "ug_subcounties.geojson"), json);
+  const totalSubcounties = Object.values(ecSubcountiesMap).reduce((n, l) => n + l.length, 0);
+  console.log(
+    `ug_subcounties.geojson written: ${features.length} polygons, ${(Buffer.byteLength(json) / 1e6).toFixed(1)} MB (covers ${covered} of ${totalSubcounties} EC subcounties)`,
+  );
+  return { covered, total: totalSubcounties };
 }
 
 function buildUnits() {
@@ -200,6 +303,8 @@ async function buildBoundaries() {
 async function main() {
   const units = buildUnits();
   const polygonNames = await buildBoundaries();
+  await ensureRawSubcounties();
+  const subcountyCoverage = buildSubcounties(units.districts, units.subcounties);
 
   const missing = units.districts.filter(
     (d) => !polygonNames.has(d) && !polygonNames.has(d.replace(/ CITY$/, "")),
@@ -207,6 +312,9 @@ async function main() {
   const orphans = [...polygonNames].filter((p) => !units.districts.includes(p));
   console.log("EC districts without a boundary polygon:", missing.join(", ") || "(none)");
   console.log("Polygons not present in EC data:", orphans.join(", ") || "(none)");
+  console.log(
+    `Subcounty polygon coverage: ${subcountyCoverage.covered}/${subcountyCoverage.total} (${((100 * subcountyCoverage.covered) / subcountyCoverage.total).toFixed(1)}%)`,
+  );
 }
 
 main().catch((err) => {

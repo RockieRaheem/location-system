@@ -386,9 +386,9 @@ export default function App() {
               {selection.district !== selectedPolygon && (
                 <div className="mt-0.5 text-gray-400">map shows: {selectedPolygon} (district centre)</div>
               )}
-              {(selection.subcounty || selection.parish || selection.village) && (
+              {(selection.parish || selection.village) && (
                 <div className="mt-0.5 text-gray-400">
-                  Exact unit coordinates aren&apos;t in this dataset.
+                  Map shows the subcounty boundary; the exact point isn&apos;t in this dataset.
                 </div>
               )}
             </div>
