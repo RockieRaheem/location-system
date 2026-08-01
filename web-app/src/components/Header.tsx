@@ -4,10 +4,16 @@ interface Props {
   country: CountryConfig;
   title: string;
   subtitle: string;
+  route?: string;
   children?: React.ReactNode;
 }
 
-export function Header({ country, title, subtitle, children }: Props) {
+export function Header({ country, title, subtitle, route = "/", children }: Props) {
+  const tabClass = (active: boolean) =>
+    `rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+      active ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-black"
+    }`;
+
   return (
     <header className="border-b border-black/10 bg-white shadow-sm">
       <div className="flex h-1.5">
@@ -30,6 +36,14 @@ export function Header({ country, title, subtitle, children }: Props) {
           <h1 className="truncate text-lg font-bold text-black sm:text-xl">{title}</h1>
           <p className="truncate text-xs text-gray-500">{subtitle}</p>
         </div>
+        <nav className="flex shrink-0 items-center gap-1 rounded-lg border border-black/10 bg-black/5 p-1">
+          <a href="#/" className={tabClass(route === "/")}>
+            Explorer
+          </a>
+          <a href="#/map" className={tabClass(route === "/map")}>
+            Map
+          </a>
+        </nav>
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-3">
           {children}
         </div>

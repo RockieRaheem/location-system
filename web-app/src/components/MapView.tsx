@@ -28,9 +28,8 @@ interface Props {
   center: [number, number];
   zoom: number;
   selection: Selection | null;
-  expanded: boolean;
-  onToggleExpanded: () => void;
   onSelectDistrict: (name: string) => void;
+  onClearSelection: () => void;
 }
 
 function selectionKey(sel: Selection | null): string {
@@ -43,9 +42,8 @@ export function MapView({
   center,
   zoom,
   selection,
-  expanded,
-  onToggleExpanded,
   onSelectDistrict,
+  onClearSelection,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
@@ -333,31 +331,12 @@ export function MapView({
     : [];
 
   return (
-    <div className="absolute inset-0">
+    <div className="relative h-full w-full overflow-hidden">
       <div ref={containerRef} className="absolute inset-0" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/30 to-transparent px-2 pb-5 pt-1.5">
-        <span className="rounded bg-black/45 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-          Map
-        </span>
-        <button
-          type="button"
-          onClick={onToggleExpanded}
-          className="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md bg-white/95 text-gray-600 shadow hover:bg-white hover:text-black"
-          title={expanded ? "Minimize map" : "Expand map"}
-          aria-label={expanded ? "Minimize map" : "Expand map"}
-        >
-          {expanded ? (
-            <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1 5h4V1M11 7H7v4M1 7h4v4M11 5H7V1" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M1 4V1h3M11 8v3H8M1 8v3h3M11 4V1H8" />
-            </svg>
-          )}
-        </button>
+      <div className="pointer-events-none absolute right-3 top-3 z-10 hidden rounded-md bg-black/55 px-2.5 py-1.5 text-[11px] font-medium text-white shadow sm:block">
+        Click a district to select it · search above to zoom to a place
       </div>
-      <div className="absolute left-2 top-9 z-10 flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-md">
+      <div className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-md">
         <button
           type="button"
           onClick={() => zoomBy(1)}
@@ -395,11 +374,24 @@ export function MapView({
         </button>
       </div>
       {sel && pathParts.length > 0 && (
-        <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-10 truncate rounded-md bg-white/95 px-2 py-1 text-[11px] font-medium text-gray-700 shadow">
-          <span className="font-semibold text-[#D90000]">{pathParts[pathParts.length - 1]}</span>
-          {pathParts.length > 1 && (
-            <span className="ml-1 text-gray-500">in {pathParts.slice(0, -1).join(" › ")}</span>
-          )}
+        <div className="absolute bottom-3 left-3 z-10 flex max-w-[calc(100%-8rem)] items-center gap-2 rounded-lg border border-black/10 bg-white/95 px-3 py-1.5 shadow-md">
+          <span className="truncate text-xs font-medium text-gray-700">
+            <span className="font-bold text-[#D90000]">{pathParts[pathParts.length - 1]}</span>
+            {pathParts.length > 1 && (
+              <span className="ml-1 text-gray-500">in {pathParts.slice(0, -1).join(" › ")}</span>
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={onClearSelection}
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/5 text-gray-500 transition hover:bg-black/10 hover:text-black"
+            title="Clear selection"
+            aria-label="Clear selection"
+          >
+            <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M3 3l6 6M9 3l-6 6" />
+            </svg>
+          </button>
         </div>
       )}
     </div>

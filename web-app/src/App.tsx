@@ -2,10 +2,11 @@ import { useMemo, useRef, useState } from "react";
 import { Header } from "./components/Header";
 import { SearchBox } from "./components/SearchBox";
 import { SidePanel } from "./components/SidePanel";
-import { MapView } from "./components/MapView";
+import { MapPage } from "./components/MapPage";
 import { uganda } from "./countries/uganda";
 import { themeFromFlag } from "./theme";
 import { getDistrictMap } from "./lib/geo";
+import { useHashRoute } from "./lib/router";
 import { cloneData, buildSearchIndexes } from "./lib/uganda";
 import {
   addDistrict,
@@ -112,8 +113,9 @@ export default function App() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [mapExpanded, setMapExpanded] = useState(false);
 
+  const route = useHashRoute();
+  const showMap = route === "/map";
   const indexes = useMemo(() => buildSearchIndexes(data), [data]);
   const polygonCount = useMemo(() => getDistrictMap().size, []);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -265,6 +267,7 @@ export default function App() {
         country={uganda}
         title="Uganda Admin Explorer"
         subtitle={`${data.districts.length} districts · ${polygonCount} mapped`}
+        route={route}
       >
         <div className="flex items-center gap-2">
           {isAdmin ? (
@@ -317,40 +320,37 @@ export default function App() {
               Admin
             </button>
           )}
-          <SearchBox country={uganda} data={data} indexes={indexes} onSelect={onSearchSelect} />
+          {!showMap && <SearchBox country={uganda} data={data} indexes={indexes} onSelect={onSearchSelect} />}
         </div>
       </Header>
 
-      <div className="relative min-h-0 flex-1">
-        <SidePanel
+      {showMap ? (
+        <MapPage
           country={uganda}
           theme={theme}
           data={data}
+          indexes={indexes}
           selection={selection}
-          onSelect={selectByLevel}
-          onReset={() => setSelection(null)}
-          isAdmin={isAdmin}
-          onRename={handleRename}
-          onAddChild={handleAddChild}
-          onDelete={handleDelete}
+          onSearchSelect={onSearchSelect}
+          onMapSelect={onMapSelect}
+          onClearSelection={() => setSelection(null)}
         />
-
-        <div
-          className={`fixed z-40 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-2xl transition-all ${
-            mapExpanded ? "inset-4" : "bottom-4 right-4 h-72 w-80"
-          }`}
-        >
-          <MapView
+      ) : (
+        <div className="relative min-h-0 flex-1">
+          <SidePanel
+            country={uganda}
             theme={theme}
-            center={uganda.map.center}
-            zoom={uganda.map.zoom}
+            data={data}
             selection={selection}
-            expanded={mapExpanded}
-            onToggleExpanded={() => setMapExpanded((v) => !v)}
-            onSelectDistrict={onMapSelect}
+            onSelect={selectByLevel}
+            onReset={() => setSelection(null)}
+            isAdmin={isAdmin}
+            onRename={handleRename}
+            onAddChild={handleAddChild}
+            onDelete={handleDelete}
           />
         </div>
-      </div>
+      )}
 
       {showLogin && (
         <AdminLogin
