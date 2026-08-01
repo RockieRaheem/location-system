@@ -6,34 +6,42 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import XYZ from "ol/source/XYZ";
 import GeoJSON from "ol/format/GeoJSON";
-import { Style, Fill, Stroke, Text } from "ol/style";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
+import { Style, Fill, Stroke, Text, Circle as CircleStyle } from "ol/style";
 import Overlay from "ol/Overlay";
 import { defaults as defaultControls } from "ol/control";
-import { createEmpty, extend as extendExtent } from "ol/extent";
+import { createEmpty, extend as extendExtent, getCenter } from "ol/extent";
 import { fromLonLat } from "ol/proj";
 import type { Theme } from "../theme";
+import type { Selection } from "../types";
 import { getDistrictMap, polygonNameFor } from "../lib/geo";
 
 interface Props {
   theme: Theme;
   center: [number, number];
   zoom: number;
-  selectedDistrict: string | null;
+  selection: Selection | null;
   onSelectDistrict: (name: string) => void;
   onReset: () => void;
 }
 
-export function MapView({ theme, center, zoom, selectedDistrict, onSelectDistrict, onReset }: Props) {
+function selectionKey(sel: Selection | null): string {
+  if (!sel) return "";
+  return `${sel.district}|${sel.subcounty ?? ""}|${sel.parish ?? ""}|${sel.village ?? ""}`;
+}
+
+export function MapView({ theme, center, zoom, selection, onSelectDistrict, onReset }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const layerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const markerLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const tooltipRef = useRef<Overlay | null>(null);
   const countryExtentRef = useRef<ReturnType<typeof createEmpty> | null>(null);
-  const selectedRef = useRef<string | null>(selectedDistrict);
+  const selectionRef = useRef<Selection | null>(selection);
   const hoverRef = useRef<string | null>(null);
-  const lastFlyRef = useRef<string | null>(null);
 
-  selectedRef.current = selectedDistrict;
+  selectionRef.current = selection;
 
   useEffect(() => {
     const tooltipEl = document.createElement("div");
@@ -64,7 +72,8 @@ export function MapView({ theme, center, zoom, selectedDistrict, onSelectDistric
       source,
       style: (feature) => {
         const name = feature.get("district") as string;
-        const selected = polygonNameFor(selectedRef.current ?? "", getDistrictMap());
+        const sel = selectionRef.current;
+        const selected = sel?.district ? polygonNameFor(sel.district, getDistrictMap()) : null;
         const isSelected = selected != null && name === selected;
         const isHover = hoverRef.current === name;
         return new Style({
@@ -87,6 +96,31 @@ export function MapView({ theme, center, zoom, selectedDistrict, onSelectDistric
     });
     layerRef.current = layer;
 
+    const markerSource = new VectorSource();
+    const markerLayer = new VectorLayer({
+      source: markerSource,
+      zIndex: 20,
+      style: (feature) => {
+        const label = feature.get("label") as string;
+        return new Style({
+          image: new CircleStyle({
+            radius: 7,
+            fill: new Fill({ color: theme.accent }),
+            stroke: new Stroke({ color: "#ffffff", width: 2.5 }),
+          }),
+          text: new Text({
+            text: label,
+            font: "700 12px Inter, sans-serif",
+            fill: new Fill({ color: theme.primary }),
+            stroke: new Stroke({ color: "#ffffff", width: 3 }),
+            offsetY: -16,
+            textAlign: "center",
+          }),
+        });
+      },
+    });
+    markerLayerRef.current = markerLayer;
+
     const map = new Map({
       target: containerRef.current ?? undefined,
       layers: [
@@ -99,6 +133,7 @@ export function MapView({ theme, center, zoom, selectedDistrict, onSelectDistric
           }),
         }),
         layer,
+        markerLayer,
       ],
       overlays: [tooltip],
       view: new View({
@@ -148,28 +183,35 @@ export function MapView({ theme, center, zoom, selectedDistrict, onSelectDistric
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const key = selectionKey(selection);
+
   useEffect(() => {
     const map = mapRef.current;
     const layer = layerRef.current;
-    if (!map || !layer || !countryExtentRef.current) return;
+    const markerLayer = markerLayerRef.current;
+    if (!map || !layer || !markerLayer || !countryExtentRef.current) return;
 
-    const selected = selectedRef.current;
-    if (selected && selected !== lastFlyRef.current) {
-      lastFlyRef.current = selected;
-      const polyName = polygonNameFor(selected, getDistrictMap());
-      const source = layerRef.current?.getSource();
+    markerLayer.getSource()?.clear();
+
+    const sel = selectionRef.current;
+    if (sel && sel.district) {
+      const polyName = polygonNameFor(sel.district, getDistrictMap());
       const olFeature = polyName
-        ? source?.getFeatures().find((feat) => feat.get("district") === polyName)
+        ? layer.getSource()?.getFeatures().find((f) => f.get("district") === polyName)
         : undefined;
-      if (olFeature) {
-        map.getView().fit(olFeature.getGeometry()!.getExtent(), {
-          padding: [90, 90, 90, 90],
-          maxZoom: 9.5,
+      const geometry = olFeature?.getGeometry();
+      if (geometry) {
+        map.getView().fit(geometry.getExtent(), {
+          padding: [70, 70, 70, 70],
+          maxZoom: 10.5,
           duration: 450,
         });
+        const label = sel.village ?? sel.parish ?? sel.subcounty ?? sel.district;
+        markerLayer.getSource()?.addFeature(
+          new Feature({ geometry: new Point(getCenter(geometry.getExtent())), label }),
+        );
       }
-    } else if (!selected) {
-      lastFlyRef.current = null;
+    } else {
       map.getView().fit(countryExtentRef.current, {
         padding: [40, 40, 40, 40],
         maxZoom: 8,
@@ -177,7 +219,8 @@ export function MapView({ theme, center, zoom, selectedDistrict, onSelectDistric
       });
     }
     layer.changed();
-  }, [selectedDistrict]);
+    markerLayer.changed();
+  }, [key]);
 
   return (
     <div className="absolute inset-0">

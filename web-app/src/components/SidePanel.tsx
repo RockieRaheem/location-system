@@ -280,10 +280,11 @@ export function SidePanel({
             )}
           </div>
         )}
-        <p className="mt-1 text-[11px] text-gray-500">
-          {country.dataSource} · {country.dataYear}
-          {isAdmin && <span className="ml-1 font-semibold text-[#D90000]">· Admin mode</span>}
-        </p>
+        {isAdmin && (
+          <p className="mt-1 text-[11px] text-gray-500">
+            <span className="font-semibold text-[#D90000]">Admin mode</span>
+          </p>
+        )}
       </div>
 
       {stats.length > 0 && (

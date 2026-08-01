@@ -299,7 +299,7 @@ export default function App() {
       <Header
         country={uganda}
         title="Uganda Admin Explorer"
-        subtitle={`${data.districts.length} districts · ${polygonCount} mapped · ${uganda.dataYear} EC data`}
+        subtitle={`${data.districts.length} districts · ${polygonCount} mapped`}
       >
         <div className="flex items-center gap-2">
           {isAdmin ? (
@@ -364,16 +364,32 @@ export default function App() {
             theme={theme}
             center={uganda.map.center}
             zoom={uganda.map.zoom}
-            selectedDistrict={selection?.district ?? null}
+            selection={selection}
             onSelectDistrict={onMapSelect}
             onReset={() => setSelection(null)}
           />
-          {selectedPolygon && (
-            <div className="pointer-events-none absolute left-3 top-3 rounded-lg bg-white/95 px-3 py-1.5 text-xs shadow">
-              <span className="font-semibold text-black">Selected:</span>{" "}
-              <span className="font-medium text-[#D90000]">{selection?.district}</span>
-              {selection?.district !== selectedPolygon && (
-                <span className="ml-1 text-gray-500">(on map: {selectedPolygon})</span>
+          {selectedPolygon && selection && (
+            <div className="pointer-events-none absolute left-3 top-3 max-w-[280px] rounded-lg bg-white/95 px-3 py-1.5 text-xs shadow">
+              <div>
+                <span className="font-semibold text-black">Selected:</span>{" "}
+                <span className="font-medium text-[#D90000]">
+                  {selection.village ?? selection.parish ?? selection.subcounty ?? selection.district}
+                </span>
+              </div>
+              {(selection.subcounty || selection.parish || selection.village) && (
+                <div className="mt-0.5 text-gray-500">
+                  {[selection.district, selection.subcounty, selection.parish, selection.village]
+                    .filter(Boolean)
+                    .join(" › ")}
+                </div>
+              )}
+              {selection.district !== selectedPolygon && (
+                <div className="mt-0.5 text-gray-400">map shows: {selectedPolygon} (district centre)</div>
+              )}
+              {(selection.subcounty || selection.parish || selection.village) && (
+                <div className="mt-0.5 text-gray-400">
+                  Exact unit coordinates aren&apos;t in this dataset.
+                </div>
               )}
             </div>
           )}
