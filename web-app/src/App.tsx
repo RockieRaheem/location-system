@@ -6,7 +6,7 @@ import { MapPage } from "./components/MapPage";
 import { uganda } from "./countries/uganda";
 import { themeFromFlag } from "./theme";
 import { getDistrictMap } from "./lib/geo";
-import { useHashRoute, navigate } from "./lib/router";
+import { useAppRoute, navigate } from "./lib/router";
 import { cloneData, buildSearchIndexes } from "./lib/uganda";
 import {
   addDistrict,
@@ -34,6 +34,47 @@ import type { UgandaData, SearchResult, Selection } from "./types";
 
 const ADMIN_EMAIL = "admin@uganda.gov";
 const ADMIN_PASSWORD = "admin123";
+
+function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text: string) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+  } catch {
+    // ignore
+  }
+  document.body.removeChild(ta);
+}
+
+function CopyLinkButton() {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        copyText(window.location.href);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      }}
+      className="shrink-0 rounded-md border border-black/15 px-3 py-2 text-xs font-bold text-black transition hover:bg-black/5"
+      title="Copy a link to this view"
+    >
+      {copied ? "Copied!" : "Copy link"}
+    </button>
+  );
+}
 
 function AdminLogin({ onSuccess, onClose }: { onSuccess: () => void; onClose: () => void }) {
   const [email, setEmail] = useState("");
@@ -110,12 +151,11 @@ function AdminLogin({ onSuccess, onClose }: { onSuccess: () => void; onClose: ()
 export default function App() {
   const theme = useMemo(() => themeFromFlag(uganda.flagColors), []);
   const [data, setData] = useState<UgandaData>(() => loadSnapshot() ?? cloneData());
-  const [selection, setSelection] = useState<Selection | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
-  const route = useHashRoute();
-  const showMap = route === "/map";
+  const { page, selection } = useAppRoute();
+  const showMap = page === "map";
   const indexes = useMemo(() => buildSearchIndexes(data), [data]);
   const polygonCount = useMemo(() => getDistrictMap().size, []);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -135,16 +175,16 @@ export default function App() {
     const v = path.village;
     if (v && sc && p) {
       applyEdit((data) => renameVillage(data, d, sc, p, v, newName));
-      setSelection((prev) => (prev ? { ...prev, village: newName } : prev));
+      navigate({ selection: { district: d, subcounty: sc, parish: p, village: newName } });
     } else if (p && sc) {
       applyEdit((data) => renameParish(data, d, sc, p, newName));
-      setSelection((prev) => (prev ? { ...prev, parish: newName } : prev));
+      navigate({ selection: { district: d, subcounty: sc, parish: newName } });
     } else if (sc) {
       applyEdit((data) => renameSubcounty(data, d, sc, newName));
-      setSelection((prev) => (prev ? { ...prev, subcounty: newName } : prev));
+      navigate({ selection: { district: d, subcounty: newName } });
     } else if (d) {
       applyEdit((data) => renameDistrict(data, d, newName));
-      setSelection((prev) => (prev ? { ...prev, district: newName } : prev));
+      navigate({ selection: { district: newName } });
     }
   }
 
@@ -175,16 +215,16 @@ export default function App() {
     const v = path.village;
     if (v && sc && p) {
       applyEdit((data) => deleteVillage(data, d, sc, p, v));
-      setSelection({ district: d, subcounty: sc, parish: p });
+      navigate({ selection: { district: d, subcounty: sc, parish: p } });
     } else if (p && sc) {
       applyEdit((data) => deleteParish(data, d, sc, p));
-      setSelection({ district: d, subcounty: sc });
+      navigate({ selection: { district: d, subcounty: sc } });
     } else if (sc) {
       applyEdit((data) => deleteSubcounty(data, d, sc));
-      setSelection({ district: d });
+      navigate({ selection: { district: d } });
     } else if (d) {
       applyEdit((data) => deleteDistrict(data, d));
-      setSelection(null);
+      navigate({ selection: null });
     }
   }
 
@@ -192,7 +232,7 @@ export default function App() {
     if (window.confirm("Reset all data back to the official EC 2022 dataset? Your edits will be lost.")) {
       clearSnapshot();
       setData(cloneData());
-      setSelection(null);
+      navigate({ selection: null });
     }
   }
 
@@ -210,7 +250,7 @@ export default function App() {
         const next = parseImportedData(String(reader.result));
         setData(next);
         saveSnapshot(next);
-        setSelection(null);
+        navigate({ selection: null });
         const c = next.meta.counts;
         window.alert(
           `Imported ${c.districts} districts, ${c.subcounties} subcounties, ${c.parishes} parishes, ${c.villages} villages.`,
@@ -223,47 +263,50 @@ export default function App() {
   }
 
   function selectByLevel(level: number, name: string) {
-    setSelection((prev) => {
-      const base = prev?.district
-        ? { district: prev.district, subcounty: prev.subcounty, parish: prev.parish }
-        : { district: "" };
-      switch (level) {
-        case 1:
-          return { district: name };
-        case 2:
-          return { ...base, district: base.district || name, subcounty: name };
-        case 3:
-          return { ...base, district: base.district || name, subcounty: base.subcounty || name, parish: name };
-        case 4:
-          return {
-            ...base,
-            district: base.district || name,
-            subcounty: base.subcounty || name,
-            parish: base.parish || name,
-            village: name,
-          };
-        default:
-          return prev;
-      }
-    });
+    const base = selection?.district
+      ? { district: selection.district, subcounty: selection.subcounty, parish: selection.parish }
+      : { district: "" };
+    let next: Selection | null = null;
+    switch (level) {
+      case 1:
+        next = { district: name };
+        break;
+      case 2:
+        next = { ...base, district: base.district || name, subcounty: name };
+        break;
+      case 3:
+        next = { ...base, district: base.district || name, subcounty: base.subcounty || name, parish: name };
+        break;
+      case 4:
+        next = {
+          ...base,
+          district: base.district || name,
+          subcounty: base.subcounty || name,
+          parish: base.parish || name,
+          village: name,
+        };
+        break;
+    }
+    if (next) navigate({ selection: next });
   }
 
   function onSearchSelect(r: SearchResult) {
-    setSelection({
-      district: r.district,
-      subcounty: r.subcounty,
-      parish: r.parish,
-      village: r.level === 4 ? r.name : undefined,
+    navigate({
+      selection: {
+        district: r.district,
+        subcounty: r.subcounty,
+        parish: r.parish,
+        village: r.level === 4 ? r.name : undefined,
+      },
     });
   }
 
   function onMapSelect(districtName: string) {
-    setSelection({ district: districtName });
+    navigate({ selection: { district: districtName } });
   }
 
   function handleOpenInExplorer(district: string, subcounty?: string) {
-    setSelection(subcounty ? { district, subcounty } : { district });
-    navigate("/");
+    navigate({ selection: subcounty ? { district, subcounty } : { district }, page: "explorer" });
   }
 
   return (
@@ -272,9 +315,11 @@ export default function App() {
         country={uganda}
         title="Uganda Admin Explorer"
         subtitle={`${data.districts.length} districts · ${polygonCount} mapped`}
-        route={route}
+        page={page}
+        onNavigate={(p) => navigate({ page: p })}
       >
         <div className="flex items-center gap-2">
+          <CopyLinkButton />
           {isAdmin ? (
             <>
               <input
@@ -338,7 +383,7 @@ export default function App() {
           selection={selection}
           onSearchSelect={onSearchSelect}
           onMapSelect={onMapSelect}
-          onClearSelection={() => setSelection(null)}
+          onClearSelection={() => navigate({ selection: null })}
           onOpenInExplorer={handleOpenInExplorer}
         />
       ) : (
@@ -349,7 +394,7 @@ export default function App() {
             data={data}
             selection={selection}
             onSelect={selectByLevel}
-            onReset={() => setSelection(null)}
+            onReset={() => navigate({ selection: null })}
             isAdmin={isAdmin}
             onRename={handleRename}
             onAddChild={handleAddChild}

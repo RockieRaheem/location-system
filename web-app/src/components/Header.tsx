@@ -1,14 +1,16 @@
 import type { CountryConfig } from "../types";
+import type { Page } from "../lib/router";
 
 interface Props {
   country: CountryConfig;
   title: string;
   subtitle: string;
-  route?: string;
+  page?: Page;
+  onNavigate?: (page: Page) => void;
   children?: React.ReactNode;
 }
 
-export function Header({ country, title, subtitle, route = "/", children }: Props) {
+export function Header({ country, title, subtitle, page = "explorer", onNavigate, children }: Props) {
   const tabClass = (active: boolean) =>
     `rounded-md px-3 py-1.5 text-sm font-semibold transition ${
       active ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-black"
@@ -37,12 +39,16 @@ export function Header({ country, title, subtitle, route = "/", children }: Prop
           <p className="truncate text-xs text-gray-500">{subtitle}</p>
         </div>
         <nav className="flex shrink-0 items-center gap-1 rounded-lg border border-black/10 bg-black/5 p-1">
-          <a href="#/" className={tabClass(route === "/")}>
+          <button
+            type="button"
+            onClick={() => onNavigate?.("explorer")}
+            className={tabClass(page === "explorer")}
+          >
             Explorer
-          </a>
-          <a href="#/map" className={tabClass(route === "/map")}>
+          </button>
+          <button type="button" onClick={() => onNavigate?.("map")} className={tabClass(page === "map")}>
             Map
-          </a>
+          </button>
         </nav>
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-3">
           {children}
