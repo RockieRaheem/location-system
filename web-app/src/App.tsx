@@ -336,8 +336,16 @@ export default function App() {
     navigate({ selection: { district: districtName } });
   }
 
-  function handleOpenInExplorer(district: string, subcounty?: string) {
-    navigate({ selection: subcounty ? { district, subcounty } : { district }, page: "explorer" });
+  function handleOpenInExplorer(
+    district: string,
+    subcounty?: string,
+    parish?: string,
+    village?: string,
+  ) {
+    navigate({
+      selection: { district, subcounty, parish, village },
+      page: "explorer",
+    });
   }
 
   return (

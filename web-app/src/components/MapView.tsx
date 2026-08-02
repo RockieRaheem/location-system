@@ -23,6 +23,7 @@ import {
   polygonNameFor,
   subcountyKeyFor,
 } from "../lib/geo";
+import { loadVillagePoints, nearestVillage } from "../lib/villages";
 
 interface Props {
   theme: Theme;
@@ -32,7 +33,12 @@ interface Props {
   data: UgandaData;
   onSelectDistrict: (name: string) => void;
   onClearSelection: () => void;
-  onOpenInExplorer: (district: string, subcounty?: string) => void;
+  onOpenInExplorer: (
+    district: string,
+    subcounty?: string,
+    parish?: string,
+    village?: string,
+  ) => void;
 }
 
 interface PinInfo {
@@ -40,6 +46,11 @@ interface PinInfo {
   latitude: number;
   district?: string;
   subcounty?: string;
+  village?: string;
+  parish?: string;
+  osmName?: string;
+  distanceKm?: number;
+  nearestLoading?: boolean;
   error?: string;
 }
 
@@ -378,12 +389,39 @@ export function MapView({
     return null;
   }
 
+  function setPinAndAttach(longitude: number, latitude: number, base: Partial<PinInfo>) {
+    setPin({ longitude, latitude, ...base, nearestLoading: true });
+    loadVillagePoints()
+      .then((points) => {
+        const near = nearestVillage(points, longitude, latitude);
+        setPin((prev) => {
+          if (!prev || prev.longitude !== longitude || prev.latitude !== latitude) return prev;
+          if (!near) return { ...prev, nearestLoading: false };
+          return {
+            ...prev,
+            nearestLoading: false,
+            osmName: near.point.name,
+            distanceKm: near.distanceKm,
+            village: near.point.village ?? undefined,
+            parish: near.point.parish ?? undefined,
+          };
+        });
+      })
+      .catch(() => {
+        setPin((prev) =>
+          prev && prev.longitude === longitude && prev.latitude === latitude
+            ? { ...prev, nearestLoading: false }
+            : prev,
+        );
+      });
+  }
+
   function dropPinAt(coord: number[]) {
     const map = mapRef.current;
     if (!map) return;
     const [longitude, latitude] = toLonLat(coord);
     const hit = reverseGeocode(coord);
-    setPin(hit ? { longitude, latitude, ...hit } : { longitude, latitude });
+    setPinAndAttach(longitude, latitude, hit ? { ...hit } : {});
     const view = map.getView();
     const z = view.getZoom() ?? 8;
     view.animate({ center: coord, zoom: Math.min(15, Math.max(z, 11)), duration: 400 });
@@ -575,18 +613,42 @@ export function MapView({
               <p className="text-xs text-gray-600">{pin.error}</p>
             ) : pin.district ? (
               <>
-                <p className="text-sm font-bold text-black">
-                  {pin.district}
-                  {pin.subcounty ? ` › ${pin.subcounty}` : ""}
+                <p className={`text-sm font-bold text-black ${pin.village ? "" : "mb-1"}`}>
+                  {pin.village
+                    ? pin.village
+                    : pin.osmName
+                      ? pin.osmName
+                      : `${pin.district}${pin.subcounty ? ` › ${pin.subcounty}` : ""}`}
                 </p>
-                {subCounts && (
-                  <p className="mt-0.5 text-[11px] text-gray-500">
-                    {subCounts.parishes} parishes · {subCounts.villages} villages in {pin.subcounty}
+                {pin.village && (
+                  <p className="text-[11px] text-gray-500">
+                    {pin.parish} parish · {pin.subcounty} subcounty · {pin.district} district
                   </p>
                 )}
+                {pin.osmName && !pin.village && (
+                  <p className="text-[11px] text-gray-500">
+                    {pin.district}
+                    {pin.subcounty ? ` › ${pin.subcounty}` : ""}
+                  </p>
+                )}
+                {pin.village ? (
+                  <p className="mt-0.5 text-[11px] text-gray-400">
+                    Matched to an EC village{pin.distanceKm ? ` (${pin.distanceKm.toFixed(1)} km)` : ""}
+                  </p>
+                ) : pin.osmName ? (
+                  <p className="mt-0.5 text-[11px] text-gray-400">
+                    Nearest named place{typeof pin.distanceKm === "number" ? ` (${pin.distanceKm.toFixed(1)} km)` : ""} · OpenStreetMap
+                  </p>
+                ) : pin.nearestLoading ? (
+                  <p className="mt-0.5 text-[11px] text-gray-400">Finding nearest village…</p>
+                ) : pin.subcounty ? (
+                  <p className="mt-0.5 text-[11px] text-gray-500">
+                    {subCounts?.parishes} parishes · {subCounts?.villages} villages in {pin.subcounty}
+                  </p>
+                ) : null}
                 <button
                   type="button"
-                  onClick={() => onOpenInExplorer(pin.district!, pin.subcounty)}
+                  onClick={() => onOpenInExplorer(pin.district!, pin.subcounty, pin.parish, pin.village)}
                   className="mt-2 rounded-md bg-[#D90000] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#B00000]"
                 >
                   Open in Explorer

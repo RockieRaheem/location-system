@@ -13,7 +13,12 @@ interface Props {
   onSearchSelect: (result: SearchResult) => void;
   onMapSelect: (district: string) => void;
   onClearSelection: () => void;
-  onOpenInExplorer: (district: string, subcounty?: string) => void;
+  onOpenInExplorer: (
+    district: string,
+    subcounty?: string,
+    parish?: string,
+    village?: string,
+  ) => void;
 }
 
 export function MapPage({
