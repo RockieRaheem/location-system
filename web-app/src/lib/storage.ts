@@ -1,31 +1,93 @@
 import { recomputeCounts } from "./admin";
+import { validateData } from "./validate";
 import type { UgandaData } from "../types";
 
-const SNAPSHOT_KEY = "ug-admin-data-v1";
+const SNAPSHOT_KEY = "ug-admin-data-v2";
+const LEGACY_KEY = "ug-admin-data-v1";
+const CORRUPT_KEY = "ug-admin-data-corrupt";
+const SCHEMA_VERSION = 2;
 
-export function loadSnapshot(): UgandaData | null {
+function readRaw(key: string): string | null {
   try {
-    const raw = localStorage.getItem(SNAPSHOT_KEY);
-    return raw ? (JSON.parse(raw) as UgandaData) : null;
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-export function saveSnapshot(data: UgandaData): void {
+function writeRaw(key: string, value: string): boolean {
   try {
-    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(data));
+    localStorage.setItem(key, value);
+    return true;
   } catch {
-    // storage full or unavailable; edits still work for the session
+    return false;
   }
 }
 
-export function clearSnapshot(): void {
+function removeKey(key: string): void {
   try {
-    localStorage.removeItem(SNAPSHOT_KEY);
+    localStorage.removeItem(key);
   } catch {
     // ignore
   }
+}
+
+function backupCorrupt(raw: string): void {
+  writeRaw(CORRUPT_KEY, raw);
+}
+
+export function loadSnapshot(): UgandaData | null {
+  const current = readRaw(SNAPSHOT_KEY);
+  if (current) {
+    try {
+      const parsed = JSON.parse(current) as { version?: number; data?: unknown };
+      const data = parsed?.version === SCHEMA_VERSION ? parsed.data : parsed;
+      const res = validateData(data);
+      if (res.valid) return data as UgandaData;
+      backupCorrupt(current);
+      removeKey(SNAPSHOT_KEY);
+    } catch {
+      backupCorrupt(current);
+      removeKey(SNAPSHOT_KEY);
+    }
+  }
+
+  const legacy = readRaw(LEGACY_KEY);
+  if (legacy) {
+    try {
+      const data = JSON.parse(legacy) as unknown;
+      const res = validateData(data);
+      if (res.valid) {
+        saveSnapshot(data as UgandaData);
+        removeKey(LEGACY_KEY);
+        return data as UgandaData;
+      }
+      backupCorrupt(legacy);
+      removeKey(LEGACY_KEY);
+    } catch {
+      backupCorrupt(legacy);
+      removeKey(LEGACY_KEY);
+    }
+  }
+
+  return null;
+}
+
+export function saveSnapshot(data: UgandaData): void {
+  writeRaw(
+    SNAPSHOT_KEY,
+    JSON.stringify({ version: SCHEMA_VERSION, savedAt: new Date().toISOString(), data }),
+  );
+}
+
+export function clearSnapshot(): void {
+  removeKey(SNAPSHOT_KEY);
+}
+
+export function clearAllStorage(): void {
+  removeKey(SNAPSHOT_KEY);
+  removeKey(LEGACY_KEY);
+  removeKey(CORRUPT_KEY);
 }
 
 export function downloadData(data: UgandaData, filename = "uganda-admin.json"): void {
@@ -47,36 +109,27 @@ export function parseImportedData(raw: string): UgandaData {
   } catch {
     throw new Error("The file is not valid JSON.");
   }
-  if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
-    throw new Error("The file must contain a single data object.");
+  if (obj && typeof obj === "object" && !Array.isArray(obj) && "version" in (obj as object)) {
+    obj = (obj as { data?: unknown }).data;
   }
-  const d = obj as Record<string, unknown>;
-  if (!Array.isArray(d.districts) || d.districts.some((x) => typeof x !== "string")) {
-    throw new Error("Missing a valid `districts` array of names.");
+  const res = validateData(obj);
+  if (!res.valid) {
+    const shown = res.problems.slice(0, 3).join(" · ");
+    throw new Error(`The file is not valid admin data: ${shown}${res.problems.length > 3 ? " …" : ""}`);
   }
-  for (const key of ["subcounties", "parishes", "villages"] as const) {
-    const rec = d[key];
-    if (!rec || typeof rec !== "object" || Array.isArray(rec)) {
-      throw new Error(`Missing a valid \`${key}\` object.`);
-    }
-    for (const list of Object.values(rec as Record<string, unknown>)) {
-      if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) {
-        throw new Error(`\`${key}\` must map to arrays of unit names.`);
-      }
-    }
-  }
-  const meta = (d.meta ?? {}) as Record<string, unknown>;
+
+  const d = obj as UgandaData;
   const imported: UgandaData = {
     meta: {
-      country: typeof meta.country === "string" ? meta.country : "ug",
-      year: typeof meta.year === "number" ? meta.year : 2022,
-      source: typeof meta.source === "string" ? meta.source : "Imported by admin",
+      country: typeof d.meta?.country === "string" ? d.meta.country : "ug",
+      year: typeof d.meta?.year === "number" ? d.meta.year : 2022,
+      source: typeof d.meta?.source === "string" ? d.meta.source : "Imported by admin",
       counts: { districts: 0, subcounties: 0, parishes: 0, villages: 0 },
     },
-    districts: d.districts as string[],
-    subcounties: d.subcounties as Record<string, string[]>,
-    parishes: d.parishes as Record<string, string[]>,
-    villages: d.villages as Record<string, string[]>,
+    districts: d.districts,
+    subcounties: d.subcounties,
+    parishes: d.parishes,
+    villages: d.villages,
   };
   recomputeCounts(imported);
   return imported;

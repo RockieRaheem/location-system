@@ -34,6 +34,7 @@ import type { UgandaData, SearchResult, Selection } from "./types";
 
 const ADMIN_EMAIL = "admin@uganda.gov";
 const ADMIN_PASSWORD = "admin123";
+const MAX_UNDO = 20;
 
 function copyText(text: string) {
   if (navigator.clipboard?.writeText) {
@@ -151,6 +152,7 @@ function AdminLogin({ onSuccess, onClose }: { onSuccess: () => void; onClose: ()
 export default function App() {
   const theme = useMemo(() => themeFromFlag(uganda.flagColors), []);
   const [data, setData] = useState<UgandaData>(() => loadSnapshot() ?? cloneData());
+  const [undoStack, setUndoStack] = useState<UgandaData[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
@@ -159,13 +161,36 @@ export default function App() {
   const indexes = useMemo(() => buildSearchIndexes(data), [data]);
   const polygonCount = useMemo(() => getDistrictMap().size, []);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
-  function applyEdit(mutator: (d: UgandaData) => UgandaData) {
-    setData((prev) => {
-      const next = mutator(prev);
-      saveSnapshot(next);
-      return next;
+  function commitData(next: UgandaData) {
+    if (next === dataRef.current) return;
+    setUndoStack((stack) => {
+      const s = [...stack, dataRef.current];
+      return s.length > MAX_UNDO ? s.slice(s.length - MAX_UNDO) : s;
     });
+    setData(next);
+    saveSnapshot(next);
+  }
+
+  function applyEdit(mutator: (d: UgandaData) => UgandaData | null): boolean {
+    const next = mutator(dataRef.current);
+    if (!next) return false;
+    commitData(next);
+    return true;
+  }
+
+  function undoLast() {
+    const prev = undoStack[undoStack.length - 1];
+    if (!prev) return;
+    setUndoStack((stack) => stack.slice(0, -1));
+    setData(prev);
+    saveSnapshot(prev);
+  }
+
+  function levelLabel(level: number): string {
+    return uganda.levels[level - 1]?.label ?? "unit";
   }
 
   function handleRename(path: UnitPath, newName: string) {
@@ -173,18 +198,23 @@ export default function App() {
     const sc = path.subcounty;
     const p = path.parish;
     const v = path.village;
+    let ok = false;
     if (v && sc && p) {
-      applyEdit((data) => renameVillage(data, d, sc, p, v, newName));
-      navigate({ selection: { district: d, subcounty: sc, parish: p, village: newName } });
+      ok = applyEdit((data) => renameVillage(data, d, sc, p, v, newName));
+      if (ok) navigate({ selection: { district: d, subcounty: sc, parish: p, village: newName } });
     } else if (p && sc) {
-      applyEdit((data) => renameParish(data, d, sc, p, newName));
-      navigate({ selection: { district: d, subcounty: sc, parish: newName } });
+      ok = applyEdit((data) => renameParish(data, d, sc, p, newName));
+      if (ok) navigate({ selection: { district: d, subcounty: sc, parish: newName } });
     } else if (sc) {
-      applyEdit((data) => renameSubcounty(data, d, sc, newName));
-      navigate({ selection: { district: d, subcounty: newName } });
+      ok = applyEdit((data) => renameSubcounty(data, d, sc, newName));
+      if (ok) navigate({ selection: { district: d, subcounty: newName } });
     } else if (d) {
-      applyEdit((data) => renameDistrict(data, d, newName));
-      navigate({ selection: { district: newName } });
+      ok = applyEdit((data) => renameDistrict(data, d, newName));
+      if (ok) navigate({ selection: { district: newName } });
+    }
+    if (!ok) {
+      const level = v && sc && p ? 4 : p && sc ? 3 : sc ? 2 : d ? 1 : 0;
+      window.alert(`A ${levelLabel(level)} named "${newName}" already exists at this level.`);
     }
   }
 
@@ -192,20 +222,22 @@ export default function App() {
     const d = parent.district;
     const sc = parent.subcounty;
     const p = parent.parish;
+    let ok = false;
     switch (level) {
       case 1:
-        applyEdit((data) => addDistrict(data, name));
+        ok = applyEdit((data) => addDistrict(data, name));
         break;
       case 2:
-        if (d) applyEdit((data) => addSubcounty(data, d, name));
+        if (d) ok = applyEdit((data) => addSubcounty(data, d, name));
         break;
       case 3:
-        if (d && sc) applyEdit((data) => addParish(data, d, sc, name));
+        if (d && sc) ok = applyEdit((data) => addParish(data, d, sc, name));
         break;
       case 4:
-        if (d && sc && p) applyEdit((data) => addVillage(data, d, sc, p, name));
+        if (d && sc && p) ok = applyEdit((data) => addVillage(data, d, sc, p, name));
         break;
     }
+    if (!ok) window.alert(`A ${levelLabel(level)} named "${name}" already exists here.`);
   }
 
   function handleDelete(path: UnitPath) {
@@ -231,7 +263,7 @@ export default function App() {
   function handleResetData() {
     if (window.confirm("Reset all data back to the official EC 2022 dataset? Your edits will be lost.")) {
       clearSnapshot();
-      setData(cloneData());
+      commitData(cloneData());
       navigate({ selection: null });
     }
   }
@@ -248,8 +280,7 @@ export default function App() {
     reader.onload = () => {
       try {
         const next = parseImportedData(String(reader.result));
-        setData(next);
-        saveSnapshot(next);
+        commitData(next);
         navigate({ selection: null });
         const c = next.meta.counts;
         window.alert(
@@ -320,6 +351,16 @@ export default function App() {
       >
         <div className="flex items-center gap-2">
           <CopyLinkButton />
+          {isAdmin && undoStack.length > 0 && (
+            <button
+              type="button"
+              onClick={undoLast}
+              className="shrink-0 rounded-md border border-black/15 px-3 py-2 text-xs font-bold text-black transition hover:bg-black/5"
+              title={`Undo last change (${undoStack.length} change${undoStack.length === 1 ? "" : "s"} back)`}
+            >
+              Undo
+            </button>
+          )}
           {isAdmin ? (
             <>
               <input
