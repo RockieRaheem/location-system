@@ -18,14 +18,9 @@ export function Header({ country, title, subtitle, page = "explorer", onNavigate
 
   return (
     <header className="border-b border-black/10 bg-white shadow-sm">
-      <div className="flex h-1.5">
-        <div className="flex-1 bg-black" />
-        <div className="flex-1 bg-[#FCDC04]" />
-        <div className="flex-1 bg-[#D90000]" />
-      </div>
       <div className="flex flex-wrap items-center gap-4 px-4 py-3">
         <div
-          className="flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-black/20"
+          className="flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-black/20 bg-white"
           aria-label={`${country.name} flag`}
           title="Official Uganda Flag with Crested Crane"
         >
