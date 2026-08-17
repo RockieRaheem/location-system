@@ -2,7 +2,6 @@
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
-const { config } = require('../firebaseConfig.js');
 const ugandaRoutes = require('./ugandaRoutes.js');
 
 const app = express();
@@ -11,9 +10,7 @@ app.use(express.json());
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(config),
-  });
+  admin.initializeApp();
 }
 
 // Mount Uganda hierarchy API

@@ -2,13 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 const admin = require('firebase-admin');
-const { config } = require('../firebaseConfig.js');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(config),
-  });
+  admin.initializeApp();
 }
 const db = admin.firestore();
 

@@ -31,6 +31,17 @@ yarn-error.log*
 
 # Firebase
 .firebase/
+**/serviceAccountKey.json
+
+# Expo
+.expo/
+.expo-shared/
+
+# Generated application data
+web-app/src/data/raw/
+web-app/src/data/ug_subcounties_raw.geojson
+web-app/src/data/ug_subcounties.geojson
+web-app/src/data/ug_villages.geojson
 
 # Editor / OS
 .vscode/

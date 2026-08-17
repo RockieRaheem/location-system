@@ -1,6 +1,9 @@
 {
   "name": "location-system-web",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "version": "2.0.0",
   "type": "module",
   "description": "Map-first multi-country administrative hierarchy platform (v2)",
@@ -23,6 +26,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "caniuse-lite": "^1.0.30001809",
     "postcss": "^8.4.49",
     "shpjs": "^6.2.0",
     "tailwindcss": "^3.4.17",
