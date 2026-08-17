@@ -23,6 +23,7 @@ import {
   deleteVillage,
   type UnitPath,
 } from "./lib/admin";
+import { setBudget } from "./lib/budget";
 import {
   loadSnapshot,
   saveSnapshot,
@@ -260,6 +261,11 @@ export default function App() {
     }
   }
 
+  function handleBudgetUpdate(path: UnitPath, value: number) {
+    if (!path.district) return;
+    applyEdit((data) => setBudget(data, path, value));
+  }
+
   function handleResetData() {
     if (window.confirm("Reset all data back to the official EC 2022 dataset? Your edits will be lost.")) {
       clearSnapshot();
@@ -448,6 +454,7 @@ export default function App() {
             onRename={handleRename}
             onAddChild={handleAddChild}
             onDelete={handleDelete}
+            onBudgetChange={handleBudgetUpdate}
           />
         </div>
       )}

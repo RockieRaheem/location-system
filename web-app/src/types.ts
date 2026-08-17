@@ -43,6 +43,7 @@ export interface UgandaData {
   subcounties: Record<string, string[]>;
   parishes: Record<string, string[]>;
   villages: Record<string, string[]>;
+  budgetAllocations?: Record<string, number>;
 }
 
 export interface SearchResult {

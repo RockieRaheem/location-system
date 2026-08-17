@@ -7,6 +7,7 @@ import {
   getVillages,
   districtStats,
 } from "../lib/uganda";
+import { getBudget, getBudgetSummary } from "../lib/budget";
 import type { UnitPath } from "../lib/admin";
 import type { Theme } from "../theme";
 
@@ -21,6 +22,7 @@ interface Props {
   onRename: (path: UnitPath, newName: string) => void;
   onAddChild: (parentPath: UnitPath, level: number, name: string) => void;
   onDelete: (path: UnitPath) => void;
+  onBudgetChange: (path: UnitPath, value: number) => void;
 }
 
 function StatChip({ label, value }: { label: string; value: number }) {
@@ -99,6 +101,7 @@ export function SidePanel({
   onRename,
   onAddChild,
   onDelete,
+  onBudgetChange,
 }: Props) {
   const depth = selection
     ? selection.village
@@ -114,14 +117,29 @@ export function SidePanel({
   const [editValue, setEditValue] = useState("");
   const [adding, setAdding] = useState(false);
   const [addValue, setAddValue] = useState("");
+  const [budgetDraft, setBudgetDraft] = useState("0");
 
   const selectionKey = selection
     ? `${selection.district}|${selection.subcounty ?? ""}|${selection.parish ?? ""}|${selection.village ?? ""}`
     : "";
+  const unitPath: UnitPath = selection
+    ? {
+        district: selection.district,
+        subcounty: selection.subcounty,
+        parish: selection.parish,
+        village: selection.village,
+      }
+    : { district: "" };
+
   useEffect(() => {
     setEditing(false);
     setAdding(false);
   }, [selectionKey]);
+
+  const budgetSummary = selection ? getBudgetSummary(data, unitPath) : null;
+  useEffect(() => {
+    if (selection) setBudgetDraft(String(getBudget(data, unitPath)));
+  }, [selectionKey, data, unitPath.district, unitPath.subcounty, unitPath.parish, unitPath.village]);
 
   let title: string;
   let badge: string;
@@ -189,15 +207,6 @@ export function SidePanel({
     rows = [];
   }
 
-  const unitPath: UnitPath = selection
-    ? {
-        district: selection.district,
-        subcounty: selection.subcounty,
-        parish: selection.parish,
-        village: selection.village,
-      }
-    : { district: "" };
-
   const addChildLevel = depth < 4 ? depth + 1 : 0;
   const addChildLabel = addChildLevel ? country.levels[addChildLevel - 1].label : "";
 
@@ -220,6 +229,13 @@ export function SidePanel({
     if (window.confirm(`Delete ${label} "${title}" and all of its children?`)) {
       onDelete(unitPath);
     }
+  }
+
+  function submitBudgetChange() {
+    if (!selection) return;
+    const parsed = Number(budgetDraft);
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+    onBudgetChange(unitPath, parsed);
   }
 
   function goUp() {
@@ -342,6 +358,42 @@ export function SidePanel({
           {stats.map((s) => (
             <StatChip key={s.label} label={s.label} value={s.value} />
           ))}
+        </div>
+      )}
+
+      {selection && (
+        <div className="border-b border-black/10 px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Budget</span>
+            <span className="text-sm font-bold text-black">
+              UGX {budgetSummary?.unitBudget.toLocaleString() ?? "0"}
+            </span>
+          </div>
+          {isAdmin ? (
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                step={10000}
+                value={budgetDraft}
+                onChange={(e) => setBudgetDraft(e.target.value)}
+                className="w-full rounded-md border border-black/15 bg-white px-2 py-1.5 text-sm text-black outline-none focus:border-[#D90000]"
+                aria-label="Budget allocation"
+              />
+              <button
+                type="button"
+                onClick={submitBudgetChange}
+                className="rounded-md bg-black px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-gray-800"
+              >
+                Save
+              </button>
+            </div>
+          ) : null}
+          {budgetSummary && (
+            <p className="mt-1 text-[10px] text-gray-500">
+              Children: UGX {budgetSummary.childBudget.toLocaleString()} · Remaining: UGX {budgetSummary.remaining.toLocaleString()}
+            </p>
+          )}
         </div>
       )}
 
