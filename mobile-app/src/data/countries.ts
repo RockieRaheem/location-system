@@ -17,7 +17,9 @@ export const COUNTRIES: Country[] = [
     id: 'UG',
     name: 'Uganda',
     code: 'UGA',
-    flagUrl: 'https://flagcdn.com/w80/ug.png',
+    // Official Uganda flag from Wikimedia Commons (National Flag and Armorial Ensigns Act, 1962)
+    // Features: 6 horizontal bands (black-yellow-red-black-yellow-red) with Grey Crowned Crested Crane in white disc
+    flagUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Flag_of_Uganda.svg/320px-Flag_of_Uganda.svg.png',
     continent: 'Africa',
     phoneCode: '+256',
     numberOfAdminLevels: 8,

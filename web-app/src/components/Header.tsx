@@ -27,12 +27,13 @@ export function Header({ country, title, subtitle, page = "explorer", onNavigate
         <div
           className="flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-black/20"
           aria-label={`${country.name} flag`}
+          title="Official Uganda Flag with Crested Crane"
         >
-          <div className="flex h-full w-full flex-col">
-            <div className="flex-1" style={{ background: country.flagColors.primary }} />
-            <div className="flex-1" style={{ background: country.flagColors.secondary }} />
-            <div className="flex-1" style={{ background: country.flagColors.accent }} />
-          </div>
+          <img
+            src="/uganda-flag.svg"
+            alt={`${country.name} flag`}
+            className="h-full w-full object-cover"
+          />
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-lg font-bold text-black sm:text-xl">{title}</h1>

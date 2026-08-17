@@ -358,7 +358,8 @@ export default function AdminLevelsScreen({ navigation, route }: AdminLevelsScre
       {/* Uganda hierarchy data removed: nothing is rendered for admin units */}
       <View style={styles.countryCard}>
         <Image
-          source={{ uri: 'https://flagcdn.com/w80/ug.png' }}
+          // Official Uganda flag from Wikimedia Commons with Crested Crane
+          source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Flag_of_Uganda.svg/320px-Flag_of_Uganda.svg.png' }}
           style={styles.countryFlag}
         />
         <View>
