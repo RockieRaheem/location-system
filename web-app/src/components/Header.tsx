@@ -25,7 +25,7 @@ export function Header({ country, title, subtitle, page = "explorer", onNavigate
           title="Official Uganda Flag with Crested Crane"
         >
           <img
-            src="/uganda-flag.svg"
+            src="/uganda-flag.png"
             alt={`${country.name} flag`}
             className="h-full w-full object-cover"
           />

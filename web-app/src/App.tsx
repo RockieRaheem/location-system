@@ -100,12 +100,12 @@ function AdminLogin({ onSuccess, onClose }: { onSuccess: () => void; onClose: ()
         className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl"
       >
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-10 items-center justify-center overflow-hidden rounded-sm border border-black/20">
-            <div className="flex h-full w-full flex-col">
-              <div className="flex-1 bg-black" />
-              <div className="flex-1 bg-[#FCDC04]" />
-              <div className="flex-1 bg-[#D90000]" />
-            </div>
+          <span className="flex h-8 w-10 items-center justify-center overflow-hidden rounded-sm border border-black/20 bg-white">
+            <img
+              src="/uganda-flag.png"
+              alt="Uganda flag"
+              className="h-full w-full object-cover"
+            />
           </span>
           <h2 className="text-lg font-bold text-black">Admin sign in</h2>
         </div>
