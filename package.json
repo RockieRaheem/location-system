@@ -3,16 +3,17 @@
   "version": "2.0.0",
   "private": true,
   "engines": { "node": ">=20", "npm": ">=10" },
-  "workspaces": ["web-app", "mobile-app", "functions/api"],
+  "devDependencies": {
+    "color-space": "3.1.0"
+  },
+  "workspaces": ["apps/web", "apps/api"],
   "scripts": {
     "dev:web": "npm run dev --workspace=location-system-web",
-    "dev:mobile": "npm run start --workspace=location-system-mobile",
     "dev:api": "npm run dev --workspace=ug-location-api",
     "build": "npm run build --workspace=location-system-web",
     "check:web": "npm run typecheck --workspace=location-system-web",
-    "check:mobile": "npm exec --workspace=location-system-mobile -- tsc --noEmit",
     "check": "npm run check:web",
-    "check:all": "npm run check:web && npm run check:mobile",
+    "check:all": "npm run check:web",
     "data:ug": "npm run data:ug --workspace=location-system-web"
   }
 }

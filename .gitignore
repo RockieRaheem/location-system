@@ -7,9 +7,9 @@ build/
 *.tsbuildinfo
 
 # Generated / downloaded source data (regenerate with `npm run data:ug`)
-web-app/src/data/uganda.json
-web-app/src/data/ug_districts.geojson
-web-app/src/data/ug_districts_raw.geojson
+apps/web/src/data/uganda.json
+apps/web/src/data/ug_districts.geojson
+apps/web/src/data/ug_districts_raw.geojson
 
 # Environment & secrets
 .env
@@ -38,10 +38,11 @@ yarn-error.log*
 .expo-shared/
 
 # Generated application data
-web-app/src/data/raw/
-web-app/src/data/ug_subcounties_raw.geojson
-web-app/src/data/ug_subcounties.geojson
-web-app/src/data/ug_villages.geojson
+apps/web/src/data/raw/
+apps/web/src/data/ug_subcounties_raw.geojson
+apps/web/src/data/ug_subcounties.geojson
+apps/web/src/data/ug_villages.geojson
+apps/web/public/data/ug_villages.geojson
 
 # Editor / OS
 .vscode/
