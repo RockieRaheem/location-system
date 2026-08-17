@@ -1,89 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600">
-  <!-- Official Uganda Flag: 6 horizontal bands with Grey Crowned Crested Crane -->
-  <!-- Based on National Flag and Armorial Ensigns Act (1962) -->
-  
-  <!-- Top Black Band -->
-  <rect x="0" y="0" width="900" height="100" fill="#000000"/>
-  
-  <!-- Yellow Band -->
-  <rect x="0" y="100" width="900" height="100" fill="#FCDC04"/>
-  
-  <!-- Red Band -->
-  <rect x="0" y="200" width="900" height="100" fill="#D90000"/>
-  
-  <!-- Bottom Black Band -->
-  <rect x="0" y="300" width="900" height="100" fill="#000000"/>
-  
-  <!-- Bottom Yellow Band -->
-  <rect x="0" y="400" width="900" height="100" fill="#FCDC04"/>
-  
-  <!-- Bottom Red Band -->
-  <rect x="0" y="500" width="900" height="100" fill="#D90000"/>
-  
-  <!-- White Disc at Center (background for crane) -->
-  <circle cx="450" cy="300" r="140" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
-  
-  <!-- Grey Crowned Crested Crane (Balearica regulorum gibbericeps) -->
-  <!-- National bird of Uganda - symbol of good fortune, longevity, and wealth -->
-  
-  <!-- Crane body -->
-  <ellipse cx="450" cy="310" rx="55" ry="70" fill="#6B7280"/>
-  
-  <!-- Crane neck -->
-  <path d="M 450 240 Q 445 200 450 160" stroke="#6B7280" stroke-width="12" fill="none" stroke-linecap="round"/>
-  
-  <!-- Crane head -->
-  <circle cx="450" cy="145" r="18" fill="#3F3F3F"/>
-  
-  <!-- Crane beak (yellowish) -->
-  <path d="M 465 143 L 490 140 L 465 147 Z" fill="#D4A574"/>
-  
-  <!-- Crane eye -->
-  <circle cx="456" cy="140" r="4" fill="#FFFFFF"/>
-  <circle cx="457" cy="140" r="2" fill="#000000"/>
-  
-  <!-- Crane crown (distinctive feature - golden tuft of feathers) -->
-  <g id="crown">
-    <!-- Crown base -->
-    <ellipse cx="450" cy="125" rx="8" ry="6" fill="#DAA520"/>
-    <!-- Crown spikes -->
-    <path d="M 445 122 Q 442 110 443 100" stroke="#DAA520" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <path d="M 450 120 Q 450 105 451 95" stroke="#DAA520" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <path d="M 455 122 Q 458 110 457 100" stroke="#DAA520" stroke-width="3" fill="none" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="Flag of Uganda">
+  <rect width="900" height="600" fill="#000000"/>
+  <rect y="100" width="900" height="100" fill="#FCDC04"/>
+  <rect y="200" width="900" height="100" fill="#D90000"/>
+  <rect y="300" width="900" height="100" fill="#000000"/>
+  <rect y="400" width="900" height="100" fill="#FCDC04"/>
+  <rect y="500" width="900" height="100" fill="#D90000"/>
+
+  <circle cx="450" cy="300" r="144" fill="#FFFFFF" stroke="#000000" stroke-width="2"/>
+
+  <g transform="translate(0 2)">
+    <g fill="#5B6470" stroke="#3D4148" stroke-width="2" stroke-linejoin="round">
+      <path d="M 360 344 C 390 292, 410 268, 432 258 C 420 302, 411 334, 405 360 C 390 358, 372 355, 360 344 Z"/>
+      <path d="M 430 260 C 478 258, 517 282, 544 318 C 563 286, 576 262, 590 246 C 566 228, 540 212, 517 204 C 499 224, 468 246, 430 260 Z"/>
+      <path d="M 366 350 C 390 350, 415 360, 431 378 C 460 365, 476 360, 494 355 C 482 398, 453 420, 424 423 C 399 421, 377 399, 366 350 Z"/>
+      <path d="M 334 360 C 350 342, 364 332, 378 327 C 362 294, 366 275, 386 248 C 353 258, 332 286, 318 321 C 320 338, 325 350, 334 360 Z"/>
+    </g>
+
+    <g stroke="#3D4148" stroke-width="2" fill="none" stroke-linecap="round">
+      <path d="M 445 242 Q 447 214 462 190"/>
+      <path d="M 465 235 Q 486 220 506 196"/>
+      <path d="M 435 240 Q 418 213 410 184"/>
+    </g>
+
+    <g>
+      <path d="M 483 150 L 514 175 L 483 197 Z" fill="#D1A670"/>
+      <circle cx="468" cy="172" r="19" fill="#4B4F54"/>
+      <circle cx="473" cy="168" r="3.5" fill="#FFFFFF"/>
+      <circle cx="474.5" cy="168" r="1.6" fill="#000000"/>
+      <path d="M 468 132 L 470 116 L 474 132 L 478 118 L 482 132 L 486 120 L 490 133 L 486 150 Z" fill="#D9A926"/>
+      <path d="M 457 144 Q 462 136 468 131" stroke="#D9A926" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M 479 131 Q 484 136 489 144" stroke="#D9A926" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M 456 182 C 469 190, 484 188, 492 181" stroke="#A3AAAF" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M 460 181 C 460 170, 468 160, 483 157" stroke="#D93B4F" stroke-width="5" fill="none" opacity="0.9"/>
+      <path d="M 478 157 C 487 165, 490 173, 494 181" stroke="#D93B4F" stroke-width="5" fill="none" opacity="0.9"/>
+    </g>
+
+    <g stroke="#2E3137" stroke-width="5" stroke-linecap="round">
+      <path d="M 420 380 L 414 438"/>
+      <path d="M 462 385 L 470 442"/>
+    </g>
+
+    <g fill="#2E3137">
+      <path d="M 414 438 L 403 450 L 421 450 Z"/>
+      <path d="M 470 442 L 483 450 L 462 450 Z"/>
+    </g>
+
+    <g fill="#5B6470" opacity="0.9">
+      <ellipse cx="365" cy="320" rx="28" ry="58"/>
+      <ellipse cx="530" cy="323" rx="28" ry="58"/>
+    </g>
+
+    <g fill="none" stroke="#4A5058" stroke-width="4" stroke-linecap="round" opacity="0.8">
+      <path d="M 346 323 Q 320 350 332 379"/>
+      <path d="M 541 323 Q 567 348 556 380"/>
+    </g>
   </g>
-  
-  <!-- Red facial patches (distinctive marking) -->
-  <ellipse cx="447" cy="152" rx="6" ry="8" fill="#DC143C" opacity="0.7"/>
-  <ellipse cx="453" cy="152" rx="6" ry="8" fill="#DC143C" opacity="0.7"/>
-  
-  <!-- Crane wings -->
-  <ellipse cx="410" cy="310" rx="40" ry="50" fill="#5A5F68" opacity="0.8"/>
-  <ellipse cx="490" cy="310" rx="40" ry="50" fill="#5A5F68" opacity="0.8"/>
-  
-  <!-- Wing details -->
-  <path d="M 400 280 Q 390 300 395 330" stroke="#4A4F58" stroke-width="3" fill="none" opacity="0.6"/>
-  <path d="M 500 280 Q 510 300 505 330" stroke="#4A4F58" stroke-width="3" fill="none" opacity="0.6"/>
-  
-  <!-- Crane legs (long and thin) -->
-  <line x1="435" y1="375" x2="430" y2="420" stroke="#2D2D2D" stroke-width="5" stroke-linecap="round"/>
-  <line x1="465" y1="375" x2="470" y2="420" stroke="#2D2D2D" stroke-width="5" stroke-linecap="round"/>
-  
-  <!-- Crane feet -->
-  <g id="left-foot">
-    <line x1="430" y1="420" x2="415" y2="430" stroke="#2D2D2D" stroke-width="3"/>
-    <line x1="430" y1="420" x2="435" y2="432" stroke="#2D2D2D" stroke-width="3"/>
-    <line x1="430" y1="420" x2="445" y2="428" stroke="#2D2D2D" stroke-width="3"/>
-  </g>
-  <g id="right-foot">
-    <line x1="470" y1="420" x2="485" y2="430" stroke="#2D2D2D" stroke-width="3"/>
-    <line x1="470" y1="420" x2="465" y2="432" stroke="#2D2D2D" stroke-width="3"/>
-    <line x1="470" y1="420" x2="455" y2="428" stroke="#2D2D2D" stroke-width="3"/>
-  </g>
-  
-  <!-- Crane tail feathers (distinctive upright posture) -->
-  <path d="M 420 350 Q 410 330 415 310" stroke="#5A5F68" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.7"/>
-  <path d="M 430 360 Q 418 340 420 320" stroke="#5A5F68" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.7"/>
-  <path d="M 480 360 Q 492 340 490 320" stroke="#5A5F68" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.7"/>
-  <path d="M 470 350 Q 480 330 475 310" stroke="#5A5F68" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.7"/>
 </svg>
