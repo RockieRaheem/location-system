@@ -24,33 +24,36 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="flex h-screen flex-col items-center justify-center gap-3 bg-[#f7f7f5] p-6 text-center">
-          <span className="flex h-10 w-14 items-center justify-center overflow-hidden rounded-sm border border-black/20 bg-white">
+        <main className="flex h-screen items-center justify-center bg-slate-100 p-5">
+          <section className="surface-card w-full max-w-lg p-8 text-center sm:p-10">
+          <span className="mx-auto flex h-12 w-16 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <img
               src="/uganda-flag.png"
               alt="Uganda flag"
               className="h-full w-full object-cover"
             />
           </span>
-          <h1 className="text-lg font-bold text-black">Something went wrong</h1>
-          <p className="max-w-md text-sm text-gray-600">{this.state.error.message}</p>
-          <div className="flex gap-2">
+          <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-red-700">Unable to continue</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">The workspace encountered a problem</h1>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">{this.state.error.message}</p>
+          <div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row">
             <button
               type="button"
               onClick={() => this.setState({ error: null })}
-              className="rounded-md bg-black px-4 py-2 text-sm font-bold text-white hover:bg-gray-800"
+              className="control-button control-button-primary"
             >
               Try again
             </button>
             <button
               type="button"
               onClick={this.resetData}
-              className="rounded-md border border-black/15 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-black/5"
+              className="control-button"
             >
               Reset stored data & reload
             </button>
           </div>
-        </div>
+          </section>
+        </main>
       );
     }
     return this.props.children;

@@ -498,16 +498,16 @@ export function MapView({
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div ref={containerRef} className="absolute inset-0" />
-      <div className="pointer-events-none absolute right-3 top-3 z-10 hidden rounded-md bg-black/55 px-2.5 py-1.5 text-[11px] font-medium text-white shadow sm:block">
+      <div className="pointer-events-none absolute right-4 top-4 z-10 hidden rounded-full border border-white/20 bg-slate-950/80 px-3 py-2 text-[11px] font-semibold text-white shadow-lg backdrop-blur sm:block">
         {pinMode
           ? "Pin mode: click the map to drop a pin"
-          : "Click a district to select it · search above to zoom to a place"}
+          : "Select a district or search for an administrative unit"}
       </div>
-      <div className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-md">
+      <div className="absolute left-4 top-4 z-10 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
         <button
           type="button"
           onClick={() => zoomBy(1)}
-          className="flex h-7 w-7 items-center justify-center text-gray-700 transition hover:bg-black/5 hover:text-black"
+          className="flex h-10 w-10 items-center justify-center text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
           title="Zoom in"
           aria-label="Zoom in"
         >
@@ -519,7 +519,7 @@ export function MapView({
         <button
           type="button"
           onClick={() => zoomBy(-1)}
-          className="flex h-7 w-7 items-center justify-center text-gray-700 transition hover:bg-black/5 hover:text-black"
+          className="flex h-10 w-10 items-center justify-center text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
           title="Zoom out"
           aria-label="Zoom out"
         >
@@ -531,7 +531,7 @@ export function MapView({
         <button
           type="button"
           onClick={fitCountry}
-          className="flex h-7 w-7 items-center justify-center text-gray-700 transition hover:bg-black/5 hover:text-black"
+          className="flex h-10 w-10 items-center justify-center text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
           title="View all of Uganda"
           aria-label="View all of Uganda"
         >
@@ -543,8 +543,8 @@ export function MapView({
         <button
           type="button"
           onClick={() => setPinMode((v) => !v)}
-          className={`flex h-7 w-7 items-center justify-center transition ${
-            pinMode ? "bg-[#D90000] text-white" : "text-gray-700 hover:bg-black/5 hover:text-black"
+          className={`flex h-10 w-10 items-center justify-center transition ${
+            pinMode ? "bg-red-700 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
           }`}
           title={pinMode ? "Exit pin mode" : "Drop a pin to find its district/subcounty"}
           aria-label="Drop a pin"
@@ -559,7 +559,7 @@ export function MapView({
         <button
           type="button"
           onClick={locateMe}
-          className="flex h-7 w-7 items-center justify-center text-gray-700 transition hover:bg-black/5 hover:text-black"
+          className="flex h-10 w-10 items-center justify-center text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
           title="Find my district and subcounty (GPS)"
           aria-label="Find my location"
         >
@@ -570,7 +570,7 @@ export function MapView({
         </button>
       </div>
       {sel && pathParts.length > 0 && (
-        <div className="absolute bottom-3 left-3 z-10 flex max-w-[calc(100%-8rem)] items-center gap-2 rounded-lg border border-black/10 bg-white/95 px-3 py-1.5 shadow-md">
+        <div className="absolute bottom-4 left-4 z-10 flex max-w-[calc(100%-8rem)] items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 px-4 py-2.5 shadow-xl backdrop-blur">
           <span className="truncate text-xs font-medium text-gray-700">
             <span className="font-bold text-[#D90000]">{pathParts[pathParts.length - 1]}</span>
             {pathParts.length > 1 && (
@@ -591,8 +591,8 @@ export function MapView({
         </div>
       )}
       {pin && (
-        <div className="absolute bottom-3 right-3 z-20 w-72 overflow-hidden rounded-lg border border-black/10 bg-white shadow-xl">
-          <div className="flex items-center justify-between bg-black px-3 py-1.5">
+        <div className="absolute bottom-4 right-4 z-20 w-[min(22rem,calc(100%-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,.22)]">
+          <div className="flex items-center justify-between bg-slate-950 px-4 py-3">
             <span className="text-[11px] font-bold uppercase tracking-wide text-white">
               {pin.error ? "Location" : pin.district ? "You are here" : "Dropped pin"}
             </span>

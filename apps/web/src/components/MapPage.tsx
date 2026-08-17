@@ -33,8 +33,8 @@ export function MapPage({
   onOpenInExplorer,
 }: Props) {
   return (
-    <div className="relative min-h-0 flex-1">
-      <div className="absolute left-1/2 top-3 z-30 w-[min(92%,30rem)] -translate-x-1/2">
+    <main className="relative min-h-0 flex-1 overflow-hidden bg-slate-100">
+      <div className="absolute left-1/2 top-4 z-30 w-[min(92%,36rem)] -translate-x-1/2">
         <SearchBox country={country} data={data} indexes={indexes} onSelect={onSearchSelect} />
       </div>
       <MapView
@@ -47,6 +47,6 @@ export function MapPage({
         onClearSelection={onClearSelection}
         onOpenInExplorer={onOpenInExplorer}
       />
-    </div>
+    </main>
   );
 }

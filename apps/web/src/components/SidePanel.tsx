@@ -9,11 +9,9 @@ import {
 } from "../lib/uganda";
 import { getBudget, getBudgetSummary } from "../lib/budget";
 import type { UnitPath } from "../lib/admin";
-import type { Theme } from "../theme";
 
 interface Props {
   country: CountryConfig;
-  theme: Theme;
   data: UgandaData;
   selection: Selection | null;
   onSelect: (level: number, name: string) => void;
@@ -27,9 +25,9 @@ interface Props {
 
 function StatChip({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-black/10 bg-white px-2 py-1.5">
-      <div className="text-base font-bold leading-tight text-black">{value.toLocaleString()}</div>
-      <div className="text-[10px] font-medium uppercase tracking-wide text-gray-500">{label}</div>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+      <div className="text-base font-semibold leading-tight text-slate-950">{value.toLocaleString()}</div>
+      <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</div>
     </div>
   );
 }
@@ -50,17 +48,17 @@ function UnitRow({
       <button
         type="button"
         onClick={onClick}
-        className={`group flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-black/5 ${
-          index % 2 === 1 ? "bg-black/[0.02]" : ""
+        className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-slate-100 ${
+          index % 2 === 1 ? "bg-slate-50/70" : ""
         }`}
       >
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-black group-hover:text-[#D90000]">
+          <span className="block truncate text-sm font-semibold text-slate-800 group-hover:text-red-700">
             {name}
           </span>
-          {meta && <span className="block truncate text-xs text-gray-500">{meta}</span>}
+          {meta && <span className="mt-0.5 block truncate text-xs text-slate-500">{meta}</span>}
         </span>
-        <svg className="h-3.5 w-3.5 shrink-0 text-gray-300 group-hover:text-[#D90000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <svg className="h-3.5 w-3.5 shrink-0 text-slate-300 group-hover:text-red-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </button>
@@ -83,7 +81,7 @@ function IconButton({
       onClick={onClick}
       title={title}
       aria-label={title}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-500 transition hover:bg-black/5 hover:text-black"
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
     >
       {children}
     </button>
@@ -92,7 +90,6 @@ function IconButton({
 
 export function SidePanel({
   country,
-  theme,
   data,
   selection,
   onSelect,
@@ -248,7 +245,7 @@ export function SidePanel({
 
   return (
     <aside className="flex h-full w-full flex-col bg-white">
-      <div className="border-b border-black/10 px-4 py-3" style={{ background: theme.primarySoft }}>
+      <div className="border-b border-slate-200 px-5 py-5">
         {editing ? (
           <div className="flex items-center gap-2">
             <input
@@ -259,13 +256,13 @@ export function SidePanel({
                 if (e.key === "Enter") submitRename();
                 if (e.key === "Escape") setEditing(false);
               }}
-              className="min-w-0 flex-1 rounded-md border border-black/20 px-2 py-1 text-sm font-semibold text-black outline-none focus:border-[#D90000]"
+              className="min-h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-950 outline-none focus:border-slate-400"
               aria-label="Rename"
             />
             <button
               type="button"
               onClick={submitRename}
-              className="rounded-md bg-[#D90000] px-2 py-1 text-xs font-bold text-white hover:bg-[#B00000]"
+              className="control-button control-button-accent min-h-10 text-xs"
             >
               Save
             </button>
@@ -280,12 +277,11 @@ export function SidePanel({
         ) : (
           <div className="flex items-center gap-2">
             <span
-              className="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
-              style={{ background: theme.accent }}
+              className="rounded-full bg-slate-950 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white"
             >
               {badge}
             </span>
-            <h2 className="truncate text-base font-bold text-black">{title}</h2>
+            <h2 className="truncate text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
             {isAdmin && depth > 0 && (
               <IconButton onClick={() => { setEditValue(title); setEditing(true); }} title="Rename">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -297,7 +293,7 @@ export function SidePanel({
         )}
         {isAdmin && (
           <p className="mt-1 text-[11px] text-gray-500">
-            <span className="font-semibold text-[#D90000]">Admin mode</span>
+            <span className="inline-flex items-center gap-1.5 font-semibold text-amber-700"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Editing enabled</span>
           </p>
         )}
         {!editing && depth > 0 && (
@@ -354,17 +350,17 @@ export function SidePanel({
       </div>
 
       {stats.length > 0 && (
-        <div className="grid grid-cols-4 gap-1.5 border-b border-black/10 px-4 py-2">
+        <div className={`grid gap-2 border-b border-slate-200 px-5 py-4 ${stats.length === 4 ? "grid-cols-2 xl:grid-cols-4" : "grid-cols-3"}`}>
           {stats.map((s) => (
             <StatChip key={s.label} label={s.label} value={s.value} />
           ))}
         </div>
       )}
 
-      <div className="border-b border-black/10 px-4 py-3">
+      <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Budget</span>
-            <span className="text-sm font-bold text-black">
+            <span className="eyebrow">Approved allocation</span>
+            <span className="text-sm font-semibold text-slate-950">
               UGX {budgetSummary?.unitBudget.toLocaleString() ?? "0"}
             </span>
           </div>
@@ -376,13 +372,13 @@ export function SidePanel({
                 step={10000}
                 value={budgetDraft}
                 onChange={(e) => setBudgetDraft(e.target.value)}
-                className="w-full rounded-md border border-black/15 bg-white px-2 py-1.5 text-sm text-black outline-none focus:border-[#D90000]"
+                className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-950/5"
                 aria-label="Budget allocation"
               />
               <button
                 type="button"
                 onClick={submitBudgetChange}
-                className="rounded-md bg-black px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-gray-800"
+                className="control-button control-button-primary min-h-10 text-xs"
               >
                 Save
               </button>
@@ -390,11 +386,11 @@ export function SidePanel({
           ) : null}
           {budgetSummary && (
             <p className="mt-1 text-[10px] text-gray-500">
-              Children: UGX {budgetSummary.childBudget.toLocaleString()} · Remaining: UGX {budgetSummary.remaining.toLocaleString()}
+              Distributed: UGX {budgetSummary.childBudget.toLocaleString()} · Available: UGX {budgetSummary.remaining.toLocaleString()}
             </p>
           )}
           {budgetBreakdown && budgetBreakdown.children.length > 0 && (
-            <div className="mt-2 space-y-1 border-t border-black/10 pt-2">
+            <div className="mt-3 max-h-28 space-y-1 overflow-y-auto border-t border-slate-200 pt-3">
               {budgetBreakdown.children.map((child) => (
                 <div key={child.key} className="flex items-center justify-between gap-2 text-[10px] text-gray-600">
                   <span className="truncate">{child.name}</span>
@@ -406,7 +402,7 @@ export function SidePanel({
       </div>
 
       {isAdmin && addChildLevel > 0 && (
-        <div className="border-b border-black/10 px-4 py-2">
+        <div className="border-b border-slate-200 px-5 py-4">
           {adding ? (
             <div className="flex items-center gap-2">
               <input
@@ -418,13 +414,13 @@ export function SidePanel({
                   if (e.key === "Escape") setAdding(false);
                 }}
                 placeholder={`New ${addChildLabel} name…`}
-                className="min-w-0 flex-1 rounded-md border border-black/20 px-2 py-1 text-sm outline-none focus:border-[#D90000]"
+                className="min-h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-slate-400"
                 aria-label={`New ${addChildLabel}`}
               />
               <button
                 type="button"
                 onClick={submitAdd}
-                className="rounded-md bg-[#D90000] px-2 py-1 text-xs font-bold text-white hover:bg-[#B00000]"
+                className="control-button control-button-accent min-h-10 text-xs"
               >
                 Add
               </button>
@@ -440,7 +436,7 @@ export function SidePanel({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="flex w-full items-center gap-2 rounded-md border border-dashed border-[#D90000]/50 px-3 py-1.5 text-sm font-semibold text-[#D90000] transition hover:bg-[#D90000]/5"
+              className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-red-300 bg-red-50/50 px-3 text-sm font-semibold text-red-700 transition hover:border-red-400 hover:bg-red-50"
             >
               <span className="text-base leading-none">＋</span> Add {addChildLabel}
             </button>
@@ -448,15 +444,15 @@ export function SidePanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-2 py-2">
         {rows.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-gray-500">
             {depth === 4
-              ? "This is the deepest administrative level. The full path is shown in the breadcrumb above."
-              : "No child units."}
+              ? "This is the final administrative level in the verified hierarchy."
+              : "No child units have been registered at this level."}
           </p>
         ) : (
-          <ul className="py-1">
+          <ul className="space-y-0.5">
             {rows.map((r, i) => (
               <UnitRow key={r.name} name={r.name} meta={r.meta} index={i} onClick={() => onRowClick(r.name)} />
             ))}
@@ -465,11 +461,11 @@ export function SidePanel({
       </div>
 
       {isAdmin && depth > 0 && (
-        <div className="border-t border-black/10 p-3">
+        <div className="border-t border-slate-200 bg-white p-4">
           <button
             type="button"
             onClick={submitDelete}
-            className="flex w-full items-center justify-center gap-2 rounded-md border border-[#D90000]/40 px-3 py-1.5 text-sm font-semibold text-[#D90000] transition hover:bg-[#D90000]/5"
+            className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50"
           >
             Delete this {badge.toLowerCase()}
           </button>
