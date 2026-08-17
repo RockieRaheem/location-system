@@ -1,6 +1,6 @@
 # Location System
 
-A monorepo for browsing and managing East African administrative locations. It contains a React web application, an Expo mobile application, and a Firebase-backed Express API.
+A Uganda-first administrative registration and public-funds allocation platform. It contains a React web application, an Expo mobile application, and a Firebase-backed Express API.
 
 ## Repository layout
 
@@ -10,7 +10,6 @@ A monorepo for browsing and managing East African administrative locations. It c
 |-- mobile-app/           React Native + Expo client
 |-- functions/api/        Express and Firebase Admin API
 |-- prd/                  Product requirements
-|-- kenya dataset/        Source data and conversion utility
 |-- ug-locations-master/  Pinned Uganda source dataset
 |-- firestore.rules       Firestore access rules
 `-- package.json          Workspace commands
@@ -48,7 +47,7 @@ npm run build
 
 ## Data
 
-Large generated Uganda datasets under `web-app/src/data/` are not committed. Rebuild them with `npm run data:ug`. The builder uses the pinned source under `ug-locations-master/` and downloads boundary/place data from sources documented in the scripts.
+Large generated Uganda datasets under `web-app/src/data/` are not committed. Rebuild them with `npm run data:ug`. The builder uses the pinned Electoral Commission-derived source under `ug-locations-master/` and downloads boundary/place data from sources documented in the scripts. Obsolete 2010 data and non-Uganda datasets are intentionally excluded from the initial scope.
 
 ## Security
 

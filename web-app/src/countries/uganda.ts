@@ -9,9 +9,9 @@ export const uganda: CountryConfig = {
   dataYear: 2022,
   levels: [
     { number: 1, name: "district", plural: "districts", label: "District" },
-    { number: 2, name: "subcounty", plural: "subcounties", label: "Subcounty" },
+    { number: 2, name: "subcounty", plural: "subcounties", label: "Sub-county / Division" },
     { number: 3, name: "parish", plural: "parishes", label: "Parish" },
-    { number: 4, name: "village", plural: "villages", label: "Village" },
+    { number: 4, name: "village", plural: "villages", label: "Village / Cell" },
   ],
   map: {
     center: [1.3733, 32.2903],

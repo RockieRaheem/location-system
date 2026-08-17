@@ -35,14 +35,27 @@ export function getParentPath(path: UnitPath): UnitPath | null {
 }
 
 export function getBudget(data: UgandaData, path: UnitPath): number {
+  if (!path.district) {
+    const value = data.nationalBudget;
+    return typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
+  }
   const key = unitKey(path);
-  if (!key) return 0;
   const value = data.budgetAllocations?.[key];
   return typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
 }
 
 export function getBudgetChildren(data: UgandaData, path: UnitPath): BudgetBreakdownEntry[] {
-  if (!path.district) return [];
+  if (!path.district) {
+    return data.districts.map((district) => {
+      const childPath: UnitPath = { district };
+      return {
+        key: unitKey(childPath),
+        name: district,
+        path: childPath,
+        budget: getBudget(data, childPath),
+      };
+    });
+  }
   const { district, subcounty, parish } = path;
 
   if (!subcounty) {
@@ -98,7 +111,7 @@ export function getBudgetSummary(data: UgandaData, path: UnitPath): BudgetBreakd
 
 export function validateBudgetAllocation(data: UgandaData, path: UnitPath, value: number): string | null {
   const clean = Number(value);
-  if (!path.district || !Number.isFinite(clean) || clean < 0) {
+  if (!Number.isFinite(clean) || clean < 0) {
     return "Budget must be a valid non-negative amount.";
   }
 
@@ -126,7 +139,10 @@ export function setBudget(data: UgandaData, path: UnitPath, value: number): Ugan
   if (message) return null;
 
   const next = structuredClone(data);
-  if (!path.district) return null;
+  if (!path.district) {
+    next.nationalBudget = Math.round(Number(value));
+    return next;
+  }
   const key = unitKey(path);
   next.budgetAllocations ??= {};
   next.budgetAllocations[key] = Math.round(Number(value));

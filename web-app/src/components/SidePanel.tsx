@@ -136,10 +136,10 @@ export function SidePanel({
     setAdding(false);
   }, [selectionKey]);
 
-  const budgetSummary = selection ? getBudgetSummary(data, unitPath) : null;
-  const budgetBreakdown = selection ? getBudgetSummary(data, unitPath) : null;
+  const budgetSummary = getBudgetSummary(data, unitPath);
+  const budgetBreakdown = budgetSummary;
   useEffect(() => {
-    if (selection) setBudgetDraft(String(getBudget(data, unitPath)));
+    setBudgetDraft(String(getBudget(data, unitPath)));
   }, [selectionKey, data, unitPath.district, unitPath.subcounty, unitPath.parish, unitPath.village]);
 
   let title: string;
@@ -233,7 +233,6 @@ export function SidePanel({
   }
 
   function submitBudgetChange() {
-    if (!selection) return;
     const parsed = Number(budgetDraft);
     if (!Number.isFinite(parsed) || parsed < 0) return;
     onBudgetChange(unitPath, parsed);
@@ -362,8 +361,7 @@ export function SidePanel({
         </div>
       )}
 
-      {selection && (
-        <div className="border-b border-black/10 px-4 py-3">
+      <div className="border-b border-black/10 px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Budget</span>
             <span className="text-sm font-bold text-black">
@@ -405,8 +403,7 @@ export function SidePanel({
               ))}
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {isAdmin && addChildLevel > 0 && (
         <div className="border-b border-black/10 px-4 py-2">
