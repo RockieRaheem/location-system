@@ -137,6 +137,7 @@ export function SidePanel({
   }, [selectionKey]);
 
   const budgetSummary = selection ? getBudgetSummary(data, unitPath) : null;
+  const budgetBreakdown = selection ? getBudgetSummary(data, unitPath) : null;
   useEffect(() => {
     if (selection) setBudgetDraft(String(getBudget(data, unitPath)));
   }, [selectionKey, data, unitPath.district, unitPath.subcounty, unitPath.parish, unitPath.village]);
@@ -393,6 +394,16 @@ export function SidePanel({
             <p className="mt-1 text-[10px] text-gray-500">
               Children: UGX {budgetSummary.childBudget.toLocaleString()} · Remaining: UGX {budgetSummary.remaining.toLocaleString()}
             </p>
+          )}
+          {budgetBreakdown && budgetBreakdown.children.length > 0 && (
+            <div className="mt-2 space-y-1 border-t border-black/10 pt-2">
+              {budgetBreakdown.children.map((child) => (
+                <div key={child.key} className="flex items-center justify-between gap-2 text-[10px] text-gray-600">
+                  <span className="truncate">{child.name}</span>
+                  <span className="font-semibold text-black">UGX {child.budget.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

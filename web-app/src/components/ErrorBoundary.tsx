@@ -25,12 +25,12 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="flex h-screen flex-col items-center justify-center gap-3 bg-[#f7f7f5] p-6 text-center">
-          <span className="flex h-10 w-14 items-center justify-center overflow-hidden rounded-sm border border-black/20">
-            <div className="flex h-full w-full flex-col">
-              <div className="flex-1 bg-black" />
-              <div className="flex-1 bg-[#FCDC04]" />
-              <div className="flex-1 bg-[#D90000]" />
-            </div>
+          <span className="flex h-10 w-14 items-center justify-center overflow-hidden rounded-sm border border-black/20 bg-white">
+            <img
+              src="/uganda-flag.png"
+              alt="Uganda flag"
+              className="h-full w-full object-cover"
+            />
           </span>
           <h1 className="text-lg font-bold text-black">Something went wrong</h1>
           <p className="max-w-md text-sm text-gray-600">{this.state.error.message}</p>

@@ -23,7 +23,7 @@ import {
   deleteVillage,
   type UnitPath,
 } from "./lib/admin";
-import { setBudget } from "./lib/budget";
+import { setBudget, validateBudgetAllocation } from "./lib/budget";
 import {
   loadSnapshot,
   saveSnapshot,
@@ -263,7 +263,17 @@ export default function App() {
 
   function handleBudgetUpdate(path: UnitPath, value: number) {
     if (!path.district) return;
-    applyEdit((data) => setBudget(data, path, value));
+    const reason = validateBudgetAllocation(dataRef.current, path, value);
+    if (reason) {
+      window.alert(reason);
+      return;
+    }
+    const next = setBudget(dataRef.current, path, value);
+    if (!next) {
+      window.alert("Budget allocation could not be saved.");
+      return;
+    }
+    applyEdit(() => next);
   }
 
   function handleResetData() {
