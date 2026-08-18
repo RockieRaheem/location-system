@@ -35,23 +35,8 @@ a:focus-visible {
     @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03),0_12px_32px_rgba(15,23,42,0.04)];
   }
 
-  .hero-panel {
-    @apply relative rounded-3xl bg-slate-950 shadow-[0_22px_60px_rgba(15,23,42,0.18)];
-    background-image:
-      radial-gradient(circle at 92% 20%, rgba(252, 220, 4, 0.2), transparent 26%),
-      radial-gradient(circle at 76% 120%, rgba(217, 0, 0, 0.34), transparent 42%);
-  }
-
   .eyebrow {
     @apply text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500;
-  }
-
-  .status-pill {
-    @apply inline-flex items-center rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-slate-200 backdrop-blur;
-  }
-
-  .status-pill-success {
-    @apply border-emerald-300/20 bg-emerald-400/10 text-emerald-200;
   }
 
   .data-label {

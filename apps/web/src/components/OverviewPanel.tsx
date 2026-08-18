@@ -33,26 +33,49 @@ export function OverviewPanel({ data, selection, isAdmin }: Props) {
   const allocatedPercent = budget.unitBudget
     ? Math.min(100, Math.round((budget.childBudget / budget.unitBudget) * 100))
     : 0;
+  const levelLabel = selection?.village
+    ? "Village / Cell"
+    : selection?.parish
+      ? "Parish / Ward"
+      : selection?.subcounty
+        ? "Sub-county / Division"
+        : selection?.district
+          ? "District / City"
+          : "National overview";
+  const parentPath = path.slice(0, -1);
 
   return (
     <section className="min-w-0 space-y-5" aria-label="Administrative overview">
-      <div className="hero-panel overflow-hidden p-6 sm:p-8">
-        <div className="relative z-10 max-w-2xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="status-pill status-pill-success">Authoritative baseline</span>
-            <span className="status-pill">Electoral Commission · July 2022</span>
+      <header className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="h-1 bg-[linear-gradient(90deg,#111827_0_33%,#fcdc04_33%_66%,#d90000_66%)]" />
+        <div className="flex flex-col gap-6 p-6 sm:p-7 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{levelLabel}</p>
+            <h2 className="mt-2 truncate text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              {path[path.length - 1]}
+            </h2>
+            {selection ? (
+              <p className="mt-2 text-sm text-slate-500">
+                {parentPath.length > 0 ? parentPath.join(" / ") : "Uganda"}
+              </p>
+            ) : (
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                Browse Uganda's administrative structure and review allocations across every level.
+              </p>
+            )}
           </div>
-          <p className="mt-7 text-sm font-medium text-amber-300">Current administrative context</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            {path[path.length - 1]}
-          </h2>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">
-            {selection
-              ? path.join("  /  ")
-              : "Explore Uganda's verified administrative structure, review coverage, and manage allocations from one governed workspace."}
-          </p>
+          <dl className="grid shrink-0 grid-cols-2 gap-x-8 gap-y-3 border-t border-slate-100 pt-5 text-sm lg:border-l lg:border-t-0 lg:py-1 lg:pl-8">
+            <div>
+              <dt className="text-xs text-slate-400">Data source</dt>
+              <dd className="mt-1 font-medium text-slate-700">Electoral Commission</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-400">Reference date</dt>
+              <dd className="mt-1 font-medium text-slate-700">July 2022</dd>
+            </div>
+          </dl>
         </div>
-      </div>
+      </header>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Districts" value={data.meta.counts.districts.toLocaleString()} detail="Districts and cities" />
