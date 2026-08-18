@@ -480,7 +480,7 @@ export default function App() {
                   onDelete={handleDelete}
                 />
               </div>
-              <OverviewPanel data={data} selection={selection} isAdmin={isAdmin} />
+              <OverviewPanel data={data} selection={selection} />
             </div>
           </div>
         </main>
