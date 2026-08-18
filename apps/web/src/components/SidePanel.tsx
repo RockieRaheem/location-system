@@ -122,8 +122,8 @@ export function SidePanel({
   let onRowClick: (name: string) => void = () => {};
 
   if (depth === 0) {
-    title = country.name;
-    badge = "Country";
+    title = "Districts";
+    badge = "Browse";
     rows = getDistricts(data).map((d) => ({ name: d, meta: undefined }));
     onRowClick = (name) => onSelect(1, name);
   } else if (depth === 1) {
@@ -224,11 +224,13 @@ export function SidePanel({
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <span
-              className="rounded-full bg-slate-950 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white"
-            >
-              {badge}
-            </span>
+            {depth > 0 && (
+              <span
+                className="rounded-full bg-slate-950 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white"
+              >
+                {badge}
+              </span>
+            )}
             <h2 className="truncate text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
             {isAdmin && depth > 0 && (
               <IconButton onClick={() => { setEditValue(title); setEditing(true); }} title="Rename">
