@@ -16,7 +16,7 @@ import { fromLonLat, toLonLat } from "ol/proj";
 import type Geometry from "ol/geom/Geometry";
 import type { Theme } from "../theme";
 import type { Selection, UgandaData } from "../types";
-import { getParishes, getVillages } from "../lib/uganda";
+import { districtStats, getParishes, getVillages } from "../lib/uganda";
 import {
   getDistrictMap,
   getSubcountyMap,
@@ -494,16 +494,42 @@ export function MapView({
   const pathParts = sel
     ? [sel.district, sel.subcounty, sel.parish, sel.village].filter(Boolean)
     : [];
+  const selectionSummary = useMemo(() => {
+    if (!sel) return null;
+    if (sel.village) return { level: "Village / Cell", metrics: [] };
+    if (sel.parish && sel.subcounty) {
+      return { level: "Parish / Ward", metrics: [{ label: "Villages", value: getVillages(data, sel.district, sel.subcounty, sel.parish).length }] };
+    }
+    if (sel.subcounty) {
+      const parishes = getParishes(data, sel.district, sel.subcounty);
+      return {
+        level: "Sub-county / Division",
+        metrics: [
+          { label: "Parishes", value: parishes.length },
+          { label: "Villages", value: parishes.reduce((total, parish) => total + getVillages(data, sel.district, sel.subcounty!, parish).length, 0) },
+        ],
+      };
+    }
+    const stats = districtStats(data, sel.district);
+    return {
+      level: "District / City",
+      metrics: [
+        { label: "Sub-counties", value: stats.subcounties },
+        { label: "Parishes", value: stats.parishes },
+        { label: "Villages", value: stats.villages },
+      ],
+    };
+  }, [data, key]);
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div ref={containerRef} className="absolute inset-0" />
-      <div className="pointer-events-none absolute right-4 top-4 z-10 hidden rounded-full border border-white/20 bg-slate-950/80 px-3 py-2 text-[11px] font-semibold text-white shadow-lg backdrop-blur sm:block">
+      <div ref={containerRef} className="absolute inset-0" role="application" aria-label="Interactive map of Uganda's administrative boundaries" />
+      <div className="pointer-events-none absolute right-4 top-20 z-10 hidden rounded-full border border-white/20 bg-slate-950/80 px-3 py-2 text-[11px] font-semibold text-white shadow-lg backdrop-blur md:block">
         {pinMode
           ? "Pin mode: click the map to drop a pin"
           : "Select a district or search for an administrative unit"}
       </div>
-      <div className="absolute left-4 top-4 z-10 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+      <div className="absolute left-4 top-20 z-10 flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
         <button
           type="button"
           onClick={() => zoomBy(1)}
@@ -569,9 +595,11 @@ export function MapView({
           </svg>
         </button>
       </div>
-      {sel && pathParts.length > 0 && (
-        <div className="absolute bottom-4 left-4 z-10 flex max-w-[calc(100%-8rem)] items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 px-4 py-2.5 shadow-xl backdrop-blur">
-          <span className="truncate text-xs font-medium text-gray-700">
+      {sel && !pin && selectionSummary && pathParts.length > 0 && (
+        <div className="absolute bottom-4 left-4 z-10 w-[min(24rem,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_20px_60px_rgba(15,23,42,.18)] backdrop-blur">
+          <div className="flex items-start gap-3">
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{selectionSummary.level}</span>
             <span className="font-bold text-[#D90000]">{pathParts[pathParts.length - 1]}</span>
             {pathParts.length > 1 && (
               <span className="ml-1 text-gray-500">in {pathParts.slice(0, -1).join(" › ")}</span>
@@ -580,13 +608,31 @@ export function MapView({
           <button
             type="button"
             onClick={onClearSelection}
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/5 text-gray-500 transition hover:bg-black/10 hover:text-black"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-950"
             title="Clear selection"
             aria-label="Clear selection"
           >
             <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <path d="M3 3l6 6M9 3l-6 6" />
             </svg>
+          </button>
+          </div>
+          {selectionSummary.metrics.length > 0 && (
+            <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-100 pt-3">
+              {selectionSummary.metrics.map((metric) => (
+                <div key={metric.label}>
+                  <dd className="text-base font-semibold text-slate-950">{metric.value.toLocaleString()}</dd>
+                  <dt className="text-[10px] font-medium text-slate-500">{metric.label}</dt>
+                </div>
+              ))}
+            </dl>
+          )}
+          <button
+            type="button"
+            onClick={() => onOpenInExplorer(sel.district, sel.subcounty, sel.parish, sel.village)}
+            className="mt-4 flex min-h-10 w-full items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            Explore this location
           </button>
         </div>
       )}
