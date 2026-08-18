@@ -466,8 +466,9 @@ export default function App() {
             <div className="mb-5 xl:hidden">
               <SearchBox country={uganda} data={data} indexes={indexes} onSelect={onSearchSelect} />
             </div>
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(22rem,29rem)_minmax(0,1fr)]">
-              <div className="surface-card min-h-[42rem] overflow-hidden lg:sticky lg:top-6 lg:h-[calc(100vh-9.5rem)]">
+            <div className="space-y-6">
+              <OverviewPanel data={data} selection={selection} />
+              <div className="surface-card h-[42rem] overflow-hidden">
                 <SidePanel
                   country={uganda}
                   data={data}
@@ -480,7 +481,6 @@ export default function App() {
                   onDelete={handleDelete}
                 />
               </div>
-              <OverviewPanel data={data} selection={selection} />
             </div>
           </div>
         </main>

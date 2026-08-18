@@ -24,21 +24,17 @@ function UnitRow({
   name,
   meta,
   onClick,
-  index,
 }: {
   name: string;
   meta?: string;
   onClick: () => void;
-  index: number;
 }) {
   return (
     <li>
       <button
         type="button"
         onClick={onClick}
-        className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-slate-100 ${
-          index % 2 === 1 ? "bg-slate-50/70" : ""
-        }`}
+        className="group flex min-h-16 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md hover:shadow-slate-950/5"
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-slate-800 group-hover:text-red-700">
@@ -344,7 +340,7 @@ export function SidePanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-2 py-2">
+      <div className="flex-1 overflow-y-auto bg-slate-50/60 px-4 py-4 sm:px-5">
         {rows.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-gray-500">
             {depth === 4
@@ -352,9 +348,9 @@ export function SidePanel({
               : "No child units have been registered at this level."}
           </p>
         ) : (
-          <ul className="space-y-0.5">
-            {rows.map((r, i) => (
-              <UnitRow key={r.name} name={r.name} meta={r.meta} index={i} onClick={() => onRowClick(r.name)} />
+          <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {rows.map((r) => (
+              <UnitRow key={r.name} name={r.name} meta={r.meta} onClick={() => onRowClick(r.name)} />
             ))}
           </ul>
         )}
