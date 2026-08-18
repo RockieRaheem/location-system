@@ -130,11 +130,6 @@ export function parseImportedData(raw: string): UgandaData {
     subcounties: d.subcounties,
     parishes: d.parishes,
     villages: d.villages,
-    nationalBudget:
-      typeof d.nationalBudget === "number" && Number.isFinite(d.nationalBudget)
-        ? Math.max(0, Math.round(d.nationalBudget))
-        : 0,
-    budgetAllocations: d.budgetAllocations,
   };
   recomputeCounts(imported);
   return imported;

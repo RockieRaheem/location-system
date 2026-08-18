@@ -7,7 +7,6 @@ import {
   getVillages,
   districtStats,
 } from "../lib/uganda";
-import { getBudget, getBudgetSummary } from "../lib/budget";
 import type { UnitPath } from "../lib/admin";
 
 interface Props {
@@ -20,7 +19,6 @@ interface Props {
   onRename: (path: UnitPath, newName: string) => void;
   onAddChild: (parentPath: UnitPath, level: number, name: string) => void;
   onDelete: (path: UnitPath) => void;
-  onBudgetChange: (path: UnitPath, value: number) => void;
 }
 
 function StatChip({ label, value }: { label: string; value: number }) {
@@ -98,7 +96,6 @@ export function SidePanel({
   onRename,
   onAddChild,
   onDelete,
-  onBudgetChange,
 }: Props) {
   const depth = selection
     ? selection.village
@@ -114,7 +111,6 @@ export function SidePanel({
   const [editValue, setEditValue] = useState("");
   const [adding, setAdding] = useState(false);
   const [addValue, setAddValue] = useState("");
-  const [budgetDraft, setBudgetDraft] = useState("0");
 
   const selectionKey = selection
     ? `${selection.district}|${selection.subcounty ?? ""}|${selection.parish ?? ""}|${selection.village ?? ""}`
@@ -133,11 +129,6 @@ export function SidePanel({
     setAdding(false);
   }, [selectionKey]);
 
-  const budgetSummary = getBudgetSummary(data, unitPath);
-  const budgetBreakdown = budgetSummary;
-  useEffect(() => {
-    setBudgetDraft(String(getBudget(data, unitPath)));
-  }, [selectionKey, data, unitPath.district, unitPath.subcounty, unitPath.parish, unitPath.village]);
 
   let title: string;
   let badge: string;
@@ -227,12 +218,6 @@ export function SidePanel({
     if (window.confirm(`Delete ${label} "${title}" and all of its children?`)) {
       onDelete(unitPath);
     }
-  }
-
-  function submitBudgetChange() {
-    const parsed = Number(budgetDraft);
-    if (!Number.isFinite(parsed) || parsed < 0) return;
-    onBudgetChange(unitPath, parsed);
   }
 
   function goUp() {
@@ -356,50 +341,6 @@ export function SidePanel({
           ))}
         </div>
       )}
-
-      <div className="border-b border-slate-200 bg-slate-50/60 px-5 py-5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="eyebrow">Approved allocation</span>
-            <span className="text-sm font-semibold text-slate-950">
-              UGX {budgetSummary?.unitBudget.toLocaleString() ?? "0"}
-            </span>
-          </div>
-          {isAdmin ? (
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                step={10000}
-                value={budgetDraft}
-                onChange={(e) => setBudgetDraft(e.target.value)}
-                className="min-h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-950/5"
-                aria-label="Budget allocation"
-              />
-              <button
-                type="button"
-                onClick={submitBudgetChange}
-                className="control-button control-button-primary min-h-10 text-xs"
-              >
-                Save
-              </button>
-            </div>
-          ) : null}
-          {budgetSummary && (
-            <p className="mt-1 text-[10px] text-gray-500">
-              Distributed: UGX {budgetSummary.childBudget.toLocaleString()} · Available: UGX {budgetSummary.remaining.toLocaleString()}
-            </p>
-          )}
-          {budgetBreakdown && budgetBreakdown.children.length > 0 && (
-            <div className="mt-3 max-h-28 space-y-1 overflow-y-auto border-t border-slate-200 pt-3">
-              {budgetBreakdown.children.map((child) => (
-                <div key={child.key} className="flex items-center justify-between gap-2 text-[10px] text-gray-600">
-                  <span className="truncate">{child.name}</span>
-                  <span className="font-semibold text-black">UGX {child.budget.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
-          )}
-      </div>
 
       {isAdmin && addChildLevel > 0 && (
         <div className="border-b border-slate-200 px-5 py-4">

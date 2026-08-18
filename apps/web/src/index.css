@@ -39,18 +39,6 @@ a:focus-visible {
     @apply text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500;
   }
 
-  .data-label {
-    @apply text-[11px] font-semibold uppercase tracking-wide text-slate-400;
-  }
-
-  .data-value {
-    @apply mt-1 text-sm font-semibold text-slate-900;
-  }
-
-  .notice {
-    @apply rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900;
-  }
-
   .control-button {
     @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950;
   }

@@ -20,16 +20,6 @@ export function validateData(d: unknown): ValidationResult {
       problems.push(`\`${rec}\` must be an object mapping keys to arrays.`);
     }
   }
-  const budgets = u.budgetAllocations;
-  if (budgets !== undefined && (!budgets || typeof budgets !== "object" || Array.isArray(budgets))) {
-    problems.push("`budgetAllocations` must be an object mapping unit keys to numbers.");
-  }
-  if (
-    u.nationalBudget !== undefined &&
-    (typeof u.nationalBudget !== "number" || !Number.isFinite(u.nationalBudget) || u.nationalBudget < 0)
-  ) {
-    problems.push("`nationalBudget` must be a non-negative finite number.");
-  }
   if (problems.length) return { valid: false, problems };
 
   const ds = districts as unknown[];

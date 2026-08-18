@@ -6,7 +6,7 @@
   },
   "version": "2.0.0",
   "type": "module",
-  "description": "Uganda-first administrative hierarchy and public-funds allocation platform",
+  "description": "Uganda administrative location navigator and registration platform",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

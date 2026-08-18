@@ -1,6 +1,6 @@
 # Uganda Administration Platform
 
-A single Uganda-first product for maintaining authoritative administrative units and controlling public-funds allocations through the hierarchy.
+A single Uganda-first product for navigating and maintaining authoritative administrative locations.
 
 ## Architecture
 

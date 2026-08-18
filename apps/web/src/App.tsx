@@ -24,7 +24,6 @@ import {
   deleteVillage,
   type UnitPath,
 } from "./lib/admin";
-import { setBudget, validateBudgetAllocation } from "./lib/budget";
 import {
   loadSnapshot,
   saveSnapshot,
@@ -113,7 +112,7 @@ function AdminLogin({ onSuccess, onClose }: { onSuccess: () => void; onClose: ()
           </span>
           <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-amber-300">Secure administration</p>
           <h2 id="admin-login-title" className="mt-2 text-2xl font-semibold tracking-tight">Welcome back</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-300">Sign in to manage administrative records and allocations.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-300">Sign in to manage Uganda's administrative location records.</p>
         </div>
         <div className="p-7">
         <label className="block text-sm font-semibold text-slate-700">
@@ -273,20 +272,6 @@ export default function App() {
       applyEdit((data) => deleteDistrict(data, d));
       navigate({ selection: null });
     }
-  }
-
-  function handleBudgetUpdate(path: UnitPath, value: number) {
-    const reason = validateBudgetAllocation(dataRef.current, path, value);
-    if (reason) {
-      notify(reason, "error");
-      return;
-    }
-    const next = setBudget(dataRef.current, path, value);
-    if (!next) {
-      notify("Budget allocation could not be saved.", "error");
-      return;
-    }
-    applyEdit(() => next);
   }
 
   function handleResetData() {
@@ -493,7 +478,6 @@ export default function App() {
                   onRename={handleRename}
                   onAddChild={handleAddChild}
                   onDelete={handleDelete}
-                  onBudgetChange={handleBudgetUpdate}
                 />
               </div>
               <OverviewPanel data={data} selection={selection} isAdmin={isAdmin} />
