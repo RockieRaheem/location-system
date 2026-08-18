@@ -5,7 +5,6 @@ import {
   getParishes,
   getSubcounties,
   getVillages,
-  districtStats,
 } from "../lib/uganda";
 import type { UnitPath } from "../lib/admin";
 
@@ -19,15 +18,6 @@ interface Props {
   onRename: (path: UnitPath, newName: string) => void;
   onAddChild: (parentPath: UnitPath, level: number, name: string) => void;
   onDelete: (path: UnitPath) => void;
-}
-
-function StatChip({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-      <div className="text-base font-semibold leading-tight text-slate-950">{value.toLocaleString()}</div>
-      <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</div>
-    </div>
-  );
 }
 
 function UnitRow({
@@ -132,32 +122,18 @@ export function SidePanel({
 
   let title: string;
   let badge: string;
-  let stats: Array<{ label: string; value: number }> = [];
   let rows: Array<{ name: string; meta?: string }> = [];
   let onRowClick: (name: string) => void = () => {};
 
   if (depth === 0) {
-    const c = data.meta.counts;
     title = country.name;
     badge = "Country";
-    stats = [
-      { label: "Districts", value: c.districts },
-      { label: "Subcounties", value: c.subcounties },
-      { label: "Parishes", value: c.parishes },
-      { label: "Villages", value: c.villages },
-    ];
     rows = getDistricts(data).map((d) => ({ name: d, meta: undefined }));
     onRowClick = (name) => onSelect(1, name);
   } else if (depth === 1) {
     const d = selection!.district;
-    const st = districtStats(data, d);
     title = d;
     badge = "District";
-    stats = [
-      { label: "Subcounties", value: st.subcounties },
-      { label: "Parishes", value: st.parishes },
-      { label: "Villages", value: st.villages },
-    ];
     rows = getSubcounties(data, d).map((sc) => {
       const p = getParishes(data, d, sc);
       const v = p.reduce((n, par) => n + getVillages(data, d, sc, par).length, 0);
@@ -167,13 +143,6 @@ export function SidePanel({
   } else if (depth === 2) {
     const { district: d, subcounty: sc } = selection!;
     const ps = getParishes(data, d, sc!);
-    stats = [
-      { label: "Parishes", value: ps.length },
-      {
-        label: "Villages",
-        value: ps.reduce((n, p) => n + getVillages(data, d, sc!, p).length, 0),
-      },
-    ];
     title = sc!;
     badge = "Subcounty";
     rows = ps.map((p) => ({
@@ -186,13 +155,11 @@ export function SidePanel({
     const vs = getVillages(data, d, sc!, p!);
     title = p!;
     badge = "Parish";
-    stats = [{ label: "Villages", value: vs.length }];
     rows = vs.map((v) => ({ name: v, meta: "Village" }));
     onRowClick = (name) => onSelect(4, name);
   } else {
     title = selection!.village!;
     badge = "Village";
-    stats = [];
     rows = [];
   }
 
@@ -333,14 +300,6 @@ export function SidePanel({
           </div>
         )}
       </div>
-
-      {stats.length > 0 && (
-        <div className={`grid gap-2 border-b border-slate-200 px-5 py-4 ${stats.length === 4 ? "grid-cols-2 xl:grid-cols-4" : "grid-cols-3"}`}>
-          {stats.map((s) => (
-            <StatChip key={s.label} label={s.label} value={s.value} />
-          ))}
-        </div>
-      )}
 
       {isAdmin && addChildLevel > 0 && (
         <div className="border-b border-slate-200 px-5 py-4">

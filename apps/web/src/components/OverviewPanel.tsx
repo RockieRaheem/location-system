@@ -1,3 +1,4 @@
+import { districtStats, getParishes, getVillages } from "../lib/uganda";
 import type { Selection, UgandaData } from "../types";
 
 interface Props {
@@ -5,14 +6,62 @@ interface Props {
   selection: Selection | null;
 }
 
-function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
+interface MetricItem {
+  label: string;
+  value: number;
+}
+
+function Metric({ label, value }: MetricItem) {
   return (
-    <article className="surface-card p-5">
-      <p className="eyebrow">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
-      <p className="mt-1 text-sm leading-5 text-slate-500">{detail}</p>
+    <article className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm shadow-slate-950/[0.02]">
+      <p className="text-3xl font-semibold tracking-tight text-slate-950">{value.toLocaleString()}</p>
+      <p className="mt-1 text-sm font-medium text-slate-500">{label}</p>
     </article>
   );
+}
+
+function getMetrics(data: UgandaData, selection: Selection | null): MetricItem[] {
+  if (!selection) {
+    return [
+      { label: "Districts and cities", value: data.meta.counts.districts },
+      { label: "Sub-counties and divisions", value: data.meta.counts.subcounties },
+      { label: "Parishes and wards", value: data.meta.counts.parishes },
+      { label: "Villages and cells", value: data.meta.counts.villages },
+    ];
+  }
+
+  if (selection.village) return [];
+
+  if (selection.parish && selection.subcounty) {
+    return [
+      {
+        label: "Villages and cells",
+        value: getVillages(data, selection.district, selection.subcounty, selection.parish).length,
+      },
+    ];
+  }
+
+  if (selection.subcounty) {
+    const parishes = getParishes(data, selection.district, selection.subcounty);
+    return [
+      { label: "Parishes and wards", value: parishes.length },
+      {
+        label: "Villages and cells",
+        value: parishes.reduce(
+          (total, parish) =>
+            total + getVillages(data, selection.district, selection.subcounty!, parish).length,
+          0,
+        ),
+      },
+    ];
+  }
+
+  const stats = districtStats(data, selection.district);
+  return [
+    { label: "Sub-counties and divisions", value: stats.subcounties },
+    { label: "Parishes and wards", value: stats.parishes },
+    { label: "Villages and cells", value: stats.villages },
+  ];
 }
 
 export function OverviewPanel({ data, selection }: Props) {
@@ -27,49 +76,37 @@ export function OverviewPanel({ data, selection }: Props) {
         ? "Sub-county / Division"
         : selection?.district
           ? "District / City"
-          : "National overview";
+          : "Country";
   const parentPath = path.slice(0, -1);
+  const metrics = getMetrics(data, selection);
 
   return (
     <section className="min-w-0 space-y-5" aria-label="Administrative overview">
-      <header className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <header className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-950/[0.02]">
         <div className="h-1 bg-[linear-gradient(90deg,#111827_0_33%,#fcdc04_33%_66%,#d90000_66%)]" />
-        <div className="flex flex-col gap-6 p-6 sm:p-7 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-5 p-6 sm:p-7 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{levelLabel}</p>
-            <h2 className="mt-2 truncate text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+            <h2 className="mt-2 truncate text-3xl font-semibold tracking-tight text-slate-950">
               {path[path.length - 1]}
             </h2>
-            {selection ? (
-              <p className="mt-2 text-sm text-slate-500">
-                {parentPath.length > 0 ? parentPath.join(" / ") : "Uganda"}
-              </p>
-            ) : (
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                Browse Uganda's administrative structure and navigate from districts down to villages and cells.
-              </p>
+            {parentPath.length > 0 && (
+              <p className="mt-2 truncate text-sm text-slate-500">{parentPath.join(" / ")}</p>
             )}
           </div>
-          <dl className="grid shrink-0 grid-cols-2 gap-x-8 gap-y-3 border-t border-slate-100 pt-5 text-sm lg:border-l lg:border-t-0 lg:py-1 lg:pl-8">
-            <div>
-              <dt className="text-xs text-slate-400">Data source</dt>
-              <dd className="mt-1 font-medium text-slate-700">Electoral Commission</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-400">Reference date</dt>
-              <dd className="mt-1 font-medium text-slate-700">July 2022</dd>
-            </div>
-          </dl>
+          <p className="shrink-0 text-sm text-slate-500">
+            Electoral Commission <span aria-hidden="true">·</span> July 2022
+          </p>
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Districts" value={data.meta.counts.districts.toLocaleString()} detail="Districts and cities" />
-        <Metric label="Sub-counties" value={data.meta.counts.subcounties.toLocaleString()} detail="Including divisions" />
-        <Metric label="Parishes" value={data.meta.counts.parishes.toLocaleString()} detail="Including wards" />
-        <Metric label="Villages" value={data.meta.counts.villages.toLocaleString()} detail="Including cells" />
-      </div>
-
+      {metrics.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <Metric key={metric.label} {...metric} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
